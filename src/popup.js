@@ -71,6 +71,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   $('settingsBtn').addEventListener('click', () => showPanel('panelSetup'));
   $('saveConfigBtn').addEventListener('click', saveAndLoad);
+
+  // Auto-save config on any input change (no fetch)
+  ['sheetId','sheetTab','apiKey','colTitle','colDocUrl','colCountry','colCity',
+   'colDuration','colServiceType','colRate','colRateRequest','colRateB2C',
+   'colRateRequestB2C','colCancellation','colCancellationRequest','colRelease',
+   'colReleaseRequest'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('input', autoSaveConfig);
+  });
   $('searchInput').addEventListener('input', e => filterTours(e.target.value));
   $('refreshBtn').addEventListener('click', () => loadTours(true));
   $('selectFillBtn').addEventListener('click', () => {
@@ -99,13 +108,12 @@ function saveConfig(cfg) {
   });
 }
 
-async function saveAndLoad() {
-  const col = id => $( id).value.trim() || '';
-  const cfg = {
+function buildConfig() {
+  const col = id => $(id).value.trim() || '';
+  return {
     sheetId:                $('sheetId').value.trim(),
-    sheetTab:               $('sheetTab').value.trim() || 'Sheet1',  // preserve original casing
+    sheetTab:               $('sheetTab').value.trim() || 'Sheet1',
     apiKey:                 $('apiKey').value.trim(),
-    // Column mappings
     colTitle:               col('colTitle')               || 'A',
     colDocUrl:              col('colDocUrl')              || 'B',
     colCountry:             col('colCountry'),
@@ -121,6 +129,21 @@ async function saveAndLoad() {
     colRelease:             col('colRelease'),
     colReleaseRequest:      col('colReleaseRequest'),
   };
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+const autoSaveConfig = debounce(async () => {
+  const cfg = buildConfig();
+  config = cfg;
+  await saveConfig(cfg);
+}, 600);
+
+async function saveAndLoad() {
+  const cfg = buildConfig();
 
   if (!cfg.sheetId || !cfg.apiKey) {
     showToast('Sheet ID and API Key are required', 'error');
