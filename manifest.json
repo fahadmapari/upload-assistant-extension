@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Tour Admin Autofill",
+  "version": "1.0.0",
+  "description": "Autofill tour data from Google Sheets & Docs into the admin panel",
+  "permissions": ["activeTab", "scripting", "storage", "identity"],
+  "host_permissions": [
+    "https://sheets.googleapis.com/*",
+    "https://docs.googleapis.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "91348474446-r30ubmq99ec2r03bcdhoedk73o27u4pa.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/documents.readonly"]
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  }
+}
