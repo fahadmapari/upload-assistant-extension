@@ -119,7 +119,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (selectedTour) goToFillPanel(selectedTour);
   });
   $("backBtn").addEventListener("click", () => showPanel("panelList"));
-  $("openSectionBtn").addEventListener("click", openAllSections);
   $("startFillBtn").addEventListener("click", startFill);
 
   $("tourList").addEventListener("click", (e) => {
@@ -652,35 +651,6 @@ function goToFillPanel(tour) {
   showPanel("panelFill");
 }
 
-// ── Open All Sections ───────────────────────────────────
-async function openAllSections() {
-  try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (!tab) {
-      throw new Error("No active tab found");
-    }
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => {
-        document
-          .querySelectorAll("mat-expansion-panel-header")
-          .forEach((h, i) => {
-            if (h.getAttribute("aria-expanded") !== "true") {
-              setTimeout(() => h.click(), i * 600);
-            }
-          });
-      },
-    });
-    showToast("Opening sections — wait 2s then autofill", "info");
-  } catch (e) {
-    console.error("[TourExt] openAllSections failed:", e.message);
-    showToast("Could not open sections: " + e.message, "error");
-  }
-}
-
 // ── Autofill ────────────────────────────────────────────
 async function startFill() {
   if (!selectedTour) return;
@@ -773,11 +743,23 @@ function injectTourData(tour) {
     }
   }
 
-  function fillByControl(controlName, value) {
+  async function ensurePanelOpen(el) {
+    const panel = el.closest("mat-expansion-panel");
+    if (!panel) return;
+    const header = panel.querySelector("mat-expansion-panel-header");
+    if (!header) return;
+    if (header.getAttribute("aria-expanded") !== "true") {
+      header.click();
+      await sleep(600);
+    }
+  }
+
+  async function fillByControl(controlName, value) {
     if (!value && value !== 0) return;
     const el = document.querySelector(`[formcontrolname="${controlName}"]`);
     if (!el || el.disabled || el.getAttribute("readonly") === "readonly")
       return;
+    await ensurePanelOpen(el);
     const tag = el.tagName.toLowerCase();
     if (tag === "input" || tag === "textarea") {
       if (setNativeInput(el, value)) filled.push(controlName);
@@ -795,6 +777,7 @@ function injectTourData(tour) {
       return;
     }
     try {
+      await ensurePanelOpen(container);
       container.click();
       await sleep(250);
       const searchInput = container.querySelector(".ng-input input");
@@ -856,39 +839,39 @@ function injectTourData(tour) {
 
   async function runFill() {
     // Text / number inputs
-    fillByControl("tourTitle", tour.title);
-    fillByControl("descriptionWillSee", tour.willSee);
-    fillByControl("descriptionLearn", tour.willLearn);
-    fillByControl("mandatoryInformation", tour.mandatoryInfo);
-    fillByControl("recommendedInformation", tour.recommendedInfo);
-    fillByControl("included", tour.included);
-    fillByControl("notIncluded", tour.notIncluded);
-    fillByControl("noOfPax", tour.noOfPax);
-    fillByControl("longitude", tour.longitude);
-    fillByControl("latitude", tour.latitude);
-    fillByControl("meetingPoint", tour.meetingPoint);
-    fillByControl("pickupInstructions", tour.pickupInstructions);
-    fillByControl("endPoint", tour.endPoint);
-    fillByControl("duration", tour.duration);
+    await fillByControl("tourTitle", tour.title);
+    await fillByControl("descriptionWillSee", tour.willSee);
+    await fillByControl("descriptionLearn", tour.willLearn);
+    await fillByControl("mandatoryInformation", tour.mandatoryInfo);
+    await fillByControl("recommendedInformation", tour.recommendedInfo);
+    await fillByControl("included", tour.included);
+    await fillByControl("notIncluded", tour.notIncluded);
+    await fillByControl("noOfPax", tour.noOfPax);
+    await fillByControl("longitude", tour.longitude);
+    await fillByControl("latitude", tour.latitude);
+    await fillByControl("meetingPoint", tour.meetingPoint);
+    await fillByControl("pickupInstructions", tour.pickupInstructions);
+    await fillByControl("endPoint", tour.endPoint);
+    await fillByControl("duration", tour.duration);
     // Prices
-    fillByControl("rate", tour.rate);
-    fillByControl("rateB2C", tour.rateB2C);
-    fillByControl("rate_request", tour.rateRequest);
-    fillByControl("rate_requestB2C", tour.rateRequestB2C);
-    fillByControl("extraHourCharges", tour.extraHour);
-    fillByControl("extraHourChargesB2C", tour.extraHourB2C);
-    fillByControl("extraHourCharges_request", tour.extraHourRequest);
-    fillByControl("extraHourCharges_requestB2C", tour.extraHourRequestB2C);
-    fillByControl("publicHolidaySurchargePercentage", tour.holidaySupplement);
-    fillByControl("weekendSupplementPercentage", tour.weekendSupplement);
+    await fillByControl("rate", tour.rate);
+    await fillByControl("rateB2C", tour.rateB2C);
+    await fillByControl("rate_request", tour.rateRequest);
+    await fillByControl("rate_requestB2C", tour.rateRequestB2C);
+    await fillByControl("extraHourCharges", tour.extraHour);
+    await fillByControl("extraHourChargesB2C", tour.extraHourB2C);
+    await fillByControl("extraHourCharges_request", tour.extraHourRequest);
+    await fillByControl("extraHourCharges_requestB2C", tour.extraHourRequestB2C);
+    await fillByControl("publicHolidaySurchargePercentage", tour.holidaySupplement);
+    await fillByControl("weekendSupplementPercentage", tour.weekendSupplement);
     // Schedule
-    fillByControl("startTime", tour.startTime);
-    fillByControl("endTime", tour.endTime);
+    await fillByControl("startTime", tour.startTime);
+    await fillByControl("endTime", tour.endTime);
     // Cancellation & cut off — two separate fields for instant vs on-request
-    fillByControl("cancellation", tour.cancellation);
-    fillByControl("cancellation_request", tour.cancellationRequest);
-    fillByControl("release", tour.release);
-    fillByControl("release_request", tour.releaseRequest);
+    await fillByControl("cancellation", tour.cancellation);
+    await fillByControl("cancellation_request", tour.cancellationRequest);
+    await fillByControl("release", tour.release);
+    await fillByControl("release_request", tour.releaseRequest);
 
     // Quill
     fillQuill(tour.description);
