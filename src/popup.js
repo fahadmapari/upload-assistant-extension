@@ -357,9 +357,31 @@ function colLetterToIndex(letters) {
   return index - 1;
 }
 
-// ── Tour List render ───────────────────────────────────
+// ── Virtual tour list ──────────────────────────────────
+// Row height = card padding(20) + title(18) + meta margin(4) + meta(16) + inter-card gap(6) = 64px
+const V_ROW    = 64;
+const V_OVERSCAN = 4;
+let vData      = [];
+let vPrevStart = -1;
+
+function tourCardHTML(t) {
+  const sel = selectedTour?.rowNum === t.rowNum ? " selected" : "";
+  return `<div class="tour-card${sel}" data-row="${t.rowNum}" style="margin-bottom:6px">
+    <div class="tour-card-title">${t.title}</div>
+    <div class="tour-card-meta">
+      <span class="tag">Row ${t.rowNum}</span>
+      ${t.country ? `<span class="tag green">${t.country}</span>` : ""}
+      ${t.city    ? `<span class="tag green">${t.city}</span>`    : ""}
+      ${t.docUrl  ? `<span class="tag blue">Doc linked</span>`    : `<span class="tag">No doc</span>`}
+    </div>
+  </div>`;
+}
+
 function renderTourList(list) {
+  vData = list;
+  vPrevStart = -1;
   const container = $("tourList");
+  container.onscroll = null;
 
   if (!list.length) {
     container.innerHTML = `
@@ -370,25 +392,39 @@ function renderTourList(list) {
     return;
   }
 
-  container.innerHTML = list
-    .map(
-      (t) => `
-    <div class="tour-card" data-row="${t.rowNum}">
-      <div class="tour-card-title">${t.title}</div>
-      <div class="tour-card-meta">
-        <span class="tag">Row ${t.rowNum}</span>
-        ${t.country ? `<span class="tag green">${t.country}</span>` : ""}
-        ${t.city ? `<span class="tag green">${t.city}</span>` : ""}
-        ${t.docUrl ? `<span class="tag blue">Doc linked</span>` : `<span class="tag">No doc</span>`}
-      </div>
-    </div>
-  `,
-    )
-    .join("");
+  // flex-shrink:0 is critical — prevents the flex parent from collapsing the scroller
+  // height, which would eliminate overflow and disable scrolling entirely.
+  const totalH = list.length * V_ROW - 6;
+  container.innerHTML =
+    `<div id="vScroller" style="position:relative;width:100%;height:${totalH}px;flex-shrink:0">` +
+    `<div id="vItems" style="position:absolute;left:0;right:0;top:0"></div>` +
+    `</div>`;
+
+  container.onscroll = () => requestAnimationFrame(renderVisible);
+  renderVisible();
+}
+
+function renderVisible() {
+  const container = $("tourList");
+  const vItems = $("vItems");
+  if (!vData.length || !vItems) return;
+
+  const scrollTop = container.scrollTop;
+  const viewH     = container.clientHeight || 280;
+
+  const start = Math.max(0, Math.floor(scrollTop / V_ROW) - V_OVERSCAN);
+  const end   = Math.min(vData.length - 1, Math.ceil((scrollTop + viewH) / V_ROW) + V_OVERSCAN - 1);
+
+  if (start === vPrevStart) return;
+  vPrevStart = start;
+
+  vItems.style.top = start * V_ROW + "px";
+  vItems.innerHTML = vData.slice(start, end + 1).map(tourCardHTML).join("");
 }
 
 function selectTour(rowNum) {
   selectedTour = tours.find((t) => t.rowNum === rowNum);
+  // Update visible cards only — off-screen cards get correct class on next renderVisible()
   document.querySelectorAll(".tour-card").forEach((c) => {
     c.classList.toggle("selected", parseInt(c.dataset.row) === rowNum);
   });
