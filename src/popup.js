@@ -672,6 +672,11 @@ async function startFill() {
   _end.setFullYear(_end.getFullYear() + 2);
   const _fmt = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 
+  // Compute end time: 22:00 minus duration hours (e.g. "2h" → 20:00)
+  const _durHours = parseInt((selectedTour.duration || "").replace(/h.*/i, "")) || 0;
+  const _endHour = Math.max(0, 22 - _durHours);
+  const _endTime = `${String(_endHour).padStart(2, "0")}:00`;
+
   // Merge: dummy base → overridden by real sheet values where available
   const fillData = {
     ...DUMMY,
@@ -691,6 +696,8 @@ async function startFill() {
     releaseRequest: selectedTour.releaseRequest || null,
     startDate: _fmt(_now),
     endDate: _fmt(_end),
+    startTime: "08:00",
+    endTime: _endTime,
   };
 
   try {
