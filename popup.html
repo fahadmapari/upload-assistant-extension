@@ -401,16 +401,23 @@
       </div>
     </div>
 
-    <div class="col-row">
-      <div class="field-group">
-        <label>Sheet Tab Name</label>
-        <input type="text" id="sheetTab" placeholder="Sheet1" />
-      </div>
-      <div class="field-group">
-        <label>Google API Key</label>
-        <input type="password" id="apiKey" placeholder="AIza…" />
-      </div>
+    <div class="field-group">
+      <label>Sheet Tab Name</label>
+      <input type="text" id="sheetTab" placeholder="Sheet1" />
+      <div class="help-text">Access is via your Google account (OAuth). No API key needed.</div>
     </div>
+
+    <!-- Legacy API key — kept for future fallback use, not currently active -->
+    <details style="margin-top:-4px">
+      <summary style="font-size:10px;color:var(--muted);cursor:pointer;font-family:var(--mono);letter-spacing:0.05em">
+        Legacy API Key (unused)
+      </summary>
+      <div class="field-group" style="margin-top:8px">
+        <label>Google API Key <span style="color:var(--muted)">(optional)</span></label>
+        <input type="password" id="apiKey" placeholder="AIza…" />
+        <div class="help-text">Not used while OAuth is active. Kept for fallback if needed.</div>
+      </div>
+    </details>
 
     <div class="col-section-label">Core Columns</div>
     <div class="col-grid">

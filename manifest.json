@@ -11,7 +11,10 @@
   ],
   "oauth2": {
     "client_id": "91348474446-r30ubmq99ec2r03bcdhoedk73o27u4pa.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/documents.readonly"]
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets.readonly",
+      "https://www.googleapis.com/auth/documents.readonly"
+    ]
   },
   "action": {
     "default_popup": "popup.html",

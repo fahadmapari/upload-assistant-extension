@@ -50,10 +50,10 @@ const DUMMY = {
 document.addEventListener("DOMContentLoaded", async () => {
   config = await loadConfig();
 
-  if (config.sheetId && config.apiKey) {
-    $("sheetId").value = config.sheetId;
+  if (config.sheetId) {
+    $("sheetId").value  = config.sheetId;
     $("sheetTab").value = config.sheetTab || "Sheet1";
-    $("apiKey").value = config.apiKey;
+    if (config.apiKey) $("apiKey").value = config.apiKey; // legacy field
     // Restore column inputs
     const cols = [
       ["colTitle", "A"],
@@ -183,8 +183,8 @@ const autoSaveConfig = debounce(async () => {
 async function saveAndLoad() {
   const cfg = buildConfig();
 
-  if (!cfg.sheetId || !cfg.apiKey) {
-    showToast("Sheet ID and API Key are required", "error");
+  if (!cfg.sheetId) {
+    showToast("Sheet ID is required", "error");
     return;
   }
 
@@ -196,10 +196,39 @@ async function saveAndLoad() {
   loadTours(true);
 }
 
+// ── OAuth token helper (shared by Sheets + Docs) ───────
+function getOAuthToken(interactive = false) {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive }, (token) => {
+      if (chrome.runtime.lastError)
+        reject(new Error(chrome.runtime.lastError.message));
+      else resolve(token);
+    });
+  });
+}
+
+function removeCachedToken(token) {
+  return new Promise(resolve => chrome.identity.removeCachedAuthToken({ token }, resolve));
+}
+
+// Fetch with automatic token-refresh on 401/403 (handles stale/insufficient-scope tokens)
+async function authedFetch(url, interactive = true) {
+  let token = await getOAuthToken(interactive);
+  let res   = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
+  if (res.status === 401 || res.status === 403) {
+    await removeCachedToken(token);
+    token = await getOAuthToken(true); // force fresh interactive auth with current scopes
+    res   = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
+  return res;
+}
+
 async function fetchAndStoreSheetTitle() {
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?fields=properties.title&key=${config.apiKey}`;
-    const res = await fetch(url);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?fields=properties.title`;
+    const res = await authedFetch(url, false);
     if (!res.ok) return;
     const data = await res.json();
     const title = data.properties?.title;
@@ -257,18 +286,11 @@ async function loadTours(forceFresh = false) {
   $("tourCountLabel").textContent = "Fetching from Google Sheets…";
 
   try {
-    // Build the range from only the configured columns
-    // Always wrap tab name in single quotes to handle spaces and special characters.
-    // The entire range must be encoded AFTER the quotes are added.
     const range = `'${config.sheetTab}'!A:Z`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(range)}?key=${config.apiKey}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(range)}`;
 
     console.log("[TourExt] Fetching range:", range);
-    console.log(
-      "[TourExt] Full URL (key hidden):",
-      url.replace(config.apiKey, "***"),
-    );
-    const res = await fetch(url);
+    const res = await authedFetch(url, true);
     console.log("[TourExt] Response status:", res.status);
     if (!res.ok) {
       const err = await res.json();
@@ -305,14 +327,7 @@ async function loadTours(forceFresh = false) {
     setStatus("ready");
   } catch (e) {
     console.error("[TourExt] Sheet fetch failed:", e.message);
-    console.error(
-      "[TourExt] Config used — sheetId:",
-      config.sheetId,
-      "| sheetTab:",
-      config.sheetTab,
-      "| apiKey set:",
-      !!config.apiKey,
-    );
+    console.error("[TourExt] Config — sheetId:", config.sheetId, "| sheetTab:", config.sheetTab);
     $("tourCountLabel").textContent = "Failed to load";
     showToast(`Error: ${e.message}`, "error");
     setStatus("error");
@@ -449,25 +464,12 @@ function filterTours(query) {
 }
 
 // ── Google Docs fetch (via chrome.identity OAuth) ──────
-// Requests an OAuth token silently, then calls the Docs API.
-// Raw document JSON is returned — parsing happens elsewhere.
 async function fetchGoogleDoc(docUrl) {
   const match = docUrl && docUrl.match(/\/d\/([\w-]+)/);
   if (!match) return null;
   const docId = match[1];
 
-  // Get OAuth token via chrome.identity (uses the user's logged-in Google account)
-  const token = await new Promise((resolve, reject) => {
-    chrome.identity.getAuthToken({ interactive: true }, (t) => {
-      if (chrome.runtime.lastError)
-        reject(new Error(chrome.runtime.lastError.message));
-      else resolve(t);
-    });
-  });
-
-  const res = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await authedFetch(`https://docs.googleapis.com/v1/documents/${docId}`, true);
 
   if (!res.ok) {
     const err = await res.json();
