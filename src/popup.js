@@ -11,8 +11,8 @@ const $ = (id) => document.getElementById(id);
 // ── Dummy data (used for fields not yet coming from sheet) ─
 const DUMMY = {
   tourType: "Private",
-  activityType: "Walking",
-  subType: "Historical",
+  activityType: "City Tours",
+  subType: "Walking Tours",
   description:
     "A fascinating guided tour of the ancient Colosseum and Roman Forum.",
   willSee: "Colosseum\nRoman Forum\nPalatine Hill",
@@ -21,17 +21,24 @@ const DUMMY = {
   recommendedInfo: "Water bottle,Sunscreen,Camera",
   included: "Licensed guide,Skip-the-line tickets",
   notIncluded: "Meals,Hotel transfers",
-  activityFor: "Everyone",
-  voucherType: "Digital",
+  activityFor: "All",
+  voucherType: "Printed or E-Voucher Accepted",
   noOfPax: "15",
   guideLanguageInstant: "English",
-  guideLanguageRequest: "French",
+  guideLanguageRequest: [
+    "Arabic", "Belarusian", "Bosnian", "Bulgarian", "Cantonese", "Chinese Mandarin",
+    "Croatian", "Czech", "Danish", "Dutch", "Estonian", "Finnish", "French", "German",
+    "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian",
+    "Japanese", "Korean", "Latvian", "Lithuanian", "Maltese", "Norwegian", "Persian",
+    "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Slovak", "Slovenian",
+    "Spanish", "Swedish", "Taiwanese", "Thai", "Turkish", "Ukranian", "Vietnamese",
+  ],
   longitude: "12.4922",
   latitude: "41.8902",
   meetingPoint: "Colosseum main entrance",
-  pickupInstructions: "Look for guide with blue flag",
+  pickupInstructions: "",
   endPoint: "Roman Forum exit",
-  tags: "History",
+  tags: "Walk",
   priceModel: "Fixed Rate",
   currency: "EUR",
   extraHour: "30",
@@ -663,7 +670,8 @@ async function startFill() {
   const fillData = {
     ...DUMMY,
     title: selectedTour.title,
-    serviceType: selectedTour.serviceType || DUMMY.serviceType,
+    serviceType: "Guide",
+    subType: selectedTour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
     country: selectedTour.country || DUMMY.country,
     city: selectedTour.city || DUMMY.city,
     duration: selectedTour.duration || DUMMY.duration,
@@ -689,6 +697,7 @@ async function startFill() {
       target: { tabId: tab.id },
       func: injectTourData,
       args: [fillData],
+      world: "MAIN",
     });
 
     const outcome = result?.[0]?.result;
@@ -699,9 +708,24 @@ async function startFill() {
       });
       outcome.failed?.forEach((key) => {
         const el = $(`check-${key}`);
-        if (el) el.className = "check-item error";
+        if (el) {
+          el.className = "check-item error";
+          const msg = outcome.errors?.[key];
+          if (msg) {
+            el.title = msg;
+            const lbl = el.querySelector("span:not(.check-dot)");
+            if (lbl) lbl.textContent += `  — ${msg.slice(0, 60)}`;
+          }
+        }
       });
-      showToast(`✓ Filled ${outcome.filled?.length || 0} fields`, "success");
+      const failCount = outcome.failed?.length || 0;
+      const fillCount = outcome.filled?.length || 0;
+      showToast(
+        failCount
+          ? `✓ ${fillCount} filled  ✕ ${failCount} failed`
+          : `✓ Filled ${fillCount} fields`,
+        failCount ? "error" : "success",
+      );
       setStatus("ready");
     } else {
       throw new Error(outcome?.error || "Unknown error");
@@ -720,6 +744,7 @@ async function startFill() {
 function injectTourData(tour) {
   const filled = [];
   const failed = [];
+  const errors = {};
 
   function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms));
@@ -767,42 +792,142 @@ function injectTourData(tour) {
     }
   }
 
+  // Retrieve the ng-select Angular component instance for a specific host element.
+  // el.__ngContext__ is the PARENT form's LView (shared by all ng-selects), so we must
+  // match the found component back to `el` via its host-element getter/property.
+  function getNgSelectComp(el) {
+    // 1. Try Angular's official debug API (works in dev builds and Ivy production)
+    try {
+      if (typeof ng !== "undefined" && typeof ng.getComponent === "function") {
+        const c = ng.getComponent(el);
+        if (c && typeof c.open === "function" && c.itemsList) return c;
+      }
+    } catch (_) {}
+
+    // 2. Search the parent LView for the component whose host element is `el`
+    const lView = el.__ngContext__;
+    if (!lView || !Array.isArray(lView)) return null;
+    for (const item of lView) {
+      if (
+        item &&
+        typeof item.open === "function" &&
+        item.itemsList &&
+        typeof item.select === "function"
+      ) {
+        // Verify this instance belongs to our element, not another ng-select
+        const hostEl =
+          item.element ||                        // ng-select public .element getter
+          item._elementRef?.nativeElement ||     // common Angular DI pattern
+          item.elementRef?.nativeElement;        // alternative accessor
+        if (hostEl === el) return item;
+      }
+    }
+    return null;
+  }
+
   async function fillNgSelect(controlName, value) {
     if (!value) return;
-    const container = document.querySelector(
-      `[formcontrolname="${controlName}"]`,
-    );
-    if (!container) {
-      failed.push(controlName);
-      return;
-    }
+    const el = document.querySelector(`[formcontrolname="${controlName}"]`);
+    if (!el) { failed.push(controlName); return; }
     try {
-      await ensurePanelOpen(container);
-      container.click();
-      await sleep(250);
-      const searchInput = container.querySelector(".ng-input input");
-      if (searchInput && !searchInput.readOnly && !searchInput.disabled) {
-        setNativeInput(searchInput, value);
-        await sleep(350);
+      await ensurePanelOpen(el);
+      const comp = getNgSelectComp(el);
+      if (comp) {
+        // Primary path: use the ng-select component API directly
+        comp.open();
+        await sleep(500);
+        const items = comp.itemsList.items || [];
+        const match =
+          items.find((i) => i.label === value) ||
+          items.find((i) => i.label && i.label.toLowerCase().includes(value.toLowerCase()));
+        if (match) {
+          comp.select(match);
+          comp.close();
+          filled.push(controlName);
+        } else {
+          const available = items.map((i) => i.label).join(", ") || "(no items loaded)";
+          errors[controlName] = `No match for "${value}". Available: ${available.slice(0, 120)}`;
+          comp.close();
+          failed.push(controlName);
+        }
+      } else {
+        // Fallback: DOM click approach (for non-Ivy or unrecognised components)
+        errors[controlName] = "Angular context not found — used DOM fallback";
+        const trigger = el.querySelector(".ng-select-container") || el;
+        trigger.click();
+        await sleep(300);
+        const searchInput = el.querySelector(".ng-input input");
+        if (searchInput && !searchInput.readOnly && !searchInput.disabled) {
+          setNativeInput(searchInput, value);
+          await sleep(400);
+        }
+        let options = [];
+        for (let i = 0; i < 10; i++) {
+          options = [...document.querySelectorAll(".ng-option:not(.ng-option-disabled)")];
+          if (options.length > 0) break;
+          await sleep(200);
+        }
+        const match =
+          options.find((o) => o.textContent.trim() === value) ||
+          options.find((o) => o.textContent.trim().toLowerCase().includes(value.toLowerCase()));
+        if (match) { delete errors[controlName]; match.click(); filled.push(controlName); }
+        else {
+          errors[controlName] = `DOM fallback: no option matching "${value}"`;
+          document.body.click(); failed.push(controlName);
+        }
       }
-      const options = [
-        ...document.querySelectorAll(".ng-option:not(.ng-option-disabled)"),
-      ];
-      const match =
-        options.find((o) => o.textContent.trim() === value) ||
-        options.find((o) =>
-          o.textContent.trim().toLowerCase().includes(value.toLowerCase()),
-        );
-      if (match) {
-        match.click();
+      await sleep(200);
+    } catch (e) {
+      errors[controlName] = e.message;
+      console.error("[TourExt] fillNgSelect failed for", controlName, ":", e.message);
+      failed.push(controlName);
+    }
+  }
+
+  async function fillNgSelectMultiple(controlName, values) {
+    if (!values || !values.length) return;
+    const el = document.querySelector(`[formcontrolname="${controlName}"]`);
+    if (!el) { failed.push(controlName); return; }
+    try {
+      await ensurePanelOpen(el);
+      const comp = getNgSelectComp(el);
+      if (comp) {
+        comp.open();
+        await sleep(500);
+        const items = comp.itemsList.items || [];
+        for (const value of values) {
+          const match =
+            items.find((i) => i.label === value) ||
+            items.find((i) => i.label && i.label.toLowerCase().includes(value.toLowerCase()));
+          if (match && !match.selected) {
+            comp.select(match);
+            await sleep(50);
+          }
+        }
+        comp.close();
         filled.push(controlName);
       } else {
-        document.body.click();
-        failed.push(controlName);
+        // Fallback: DOM click approach
+        for (const value of values) {
+          el.click();
+          await sleep(200);
+          const searchInput = el.querySelector(".ng-input input");
+          if (searchInput && !searchInput.readOnly && !searchInput.disabled) {
+            setNativeInput(searchInput, value);
+            await sleep(300);
+          }
+          const options = [...document.querySelectorAll(".ng-option:not(.ng-option-disabled)")];
+          const match =
+            options.find((o) => o.textContent.trim() === value) ||
+            options.find((o) => o.textContent.trim().toLowerCase().includes(value.toLowerCase()));
+          if (match) { match.click(); await sleep(100); }
+          else { document.body.click(); await sleep(100); }
+        }
+        filled.push(controlName);
       }
-      await sleep(150);
     } catch (e) {
-      console.error("[TourExt] fillNgSelect failed for", controlName, ":", e.message);
+      errors[controlName] = e.message;
+      console.error("[TourExt] fillNgSelectMultiple failed for", controlName, ":", e.message);
       failed.push(controlName);
     }
   }
@@ -880,10 +1005,12 @@ function injectTourData(tour) {
     setCheckbox("isB2CEnabled", tour.isB2CEnabled);
     setCheckbox("isB2BEnabled", tour.isB2BEnabled);
 
-    // ng-selects (sequential)
+    // ng-selects (sequential) — cascading: serviceType → activityType → subType
     await fillNgSelect("serviceType", tour.serviceType);
+    await sleep(900); // wait for activityType options to cascade-load
     await fillNgSelect("tourType", tour.tourType);
     await fillNgSelect("activityType", tour.activityType);
+    await sleep(900); // wait for subType options to cascade-load
     await fillNgSelect("subType", tour.subType);
     await fillNgSelect("activityFor", tour.activityFor);
     await fillNgSelect("voucherType", tour.voucherType);
@@ -892,13 +1019,10 @@ function injectTourData(tour) {
     await fillNgSelect("isFixedModel", tour.priceModel);
     await fillNgSelect("currency", tour.currency);
     await fillNgSelect("tourGuideLanguageList", tour.guideLanguageInstant);
-    await fillNgSelect(
-      "tourGuideLanguageList_request",
-      tour.guideLanguageRequest,
-    );
+    await fillNgSelectMultiple("tourGuideLanguageList_request", tour.guideLanguageRequest);
     await fillNgSelect("tagsList", tour.tags);
 
-    return { success: true, filled, failed };
+    return { success: true, filled, failed, errors };
   }
 
   return runFill();
