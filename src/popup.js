@@ -606,43 +606,56 @@ const FILL_FIELDS = [
 function goToFillPanel(tour) {
   $("previewName").textContent = tour.title;
 
-  // Show sheet-sourced values in the preview
-  const previewRows = [
-    ["Country", tour.country],
-    ["City", tour.city],
-    ["Duration", tour.duration],
-    ["Product Type", tour.serviceType],
-    ["B2B Instant", tour.rate ? `€${tour.rate}` : null],
-    ["B2B Request", tour.rateRequest ? `€${tour.rateRequest}` : null],
-    ["B2C Instant", tour.rateB2C ? `€${tour.rateB2C}` : null],
-    ["B2C Request", tour.rateRequestB2C ? `€${tour.rateRequestB2C}` : null],
-  ].filter(([, v]) => v);
+  // Build the same merged data that will actually be filled
+  const _now = new Date();
+  const _end = new Date(_now);
+  _end.setFullYear(_end.getFullYear() + 2);
+  const _fmt = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  const _durHours = parseInt((tour.duration || "").replace(/h.*/i, "")) || 0;
+  const _endTime = `${String(Math.max(0, 22 - _durHours)).padStart(2, "0")}:00`;
 
-  $("previewFields").innerHTML = `
-    ${previewRows
-      .map(
-        ([k, v]) => `
-      <div class="preview-row">
-        <span class="preview-key">${k}</span>
-        <span class="preview-val">${v}</span>
-      </div>`,
-      )
-      .join("")}
-    <div class="preview-row">
-      <span class="preview-key">Doc</span>
-      <span class="preview-val">${
-        tour.docUrl
-          ? `<a href="${tour.docUrl}" target="_blank" style="color:var(--accent)">View ↗</a>`
-          : '<span style="color:var(--muted)">Not linked</span>'
-      }</span>
-    </div>
-    <div class="preview-row" style="margin-top:4px">
-      <span class="preview-key" style="color:var(--warning)">⚠ Note</span>
-      <span class="preview-val" style="color:var(--warning);font-size:10px">Non-sheet fields use dummy data</span>
-    </div>
-  `;
+  const fillData = {
+    ...DUMMY,
+    title: tour.title,
+    serviceType: "Guide",
+    subType: tour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
+    country: tour.country || DUMMY.country,
+    city: tour.city || DUMMY.city,
+    duration: tour.duration || DUMMY.duration,
+    rate: tour.rate || DUMMY.rate,
+    rateRequest: tour.rateRequest || DUMMY.rateRequest,
+    rateB2C: tour.rateB2C || DUMMY.rateB2C,
+    rateRequestB2C: tour.rateRequestB2C || DUMMY.rateRequestB2C,
+    cancellation: tour.cancellation || DUMMY.cancellation,
+    cancellationRequest: tour.cancellationRequest || null,
+    release: tour.release || DUMMY.release,
+    releaseRequest: tour.releaseRequest || null,
+    startDate: _fmt(_now),
+    endDate: _fmt(_end),
+    startTime: "08:00",
+    endTime: _endTime,
+  };
 
-  // Checklist — label source per field
+  // Preview: show every FILL_FIELDS entry with its resolved value
+  $("previewFields").innerHTML =
+    `<table class="preview-table">` +
+    FILL_FIELDS.map((f) => {
+      const raw = fillData[f.key];
+      const display = Array.isArray(raw)
+        ? raw.join(", ")
+        : (raw != null && raw !== "" ? String(raw) : "—");
+      const isSheet = f.source === "sheet";
+      const valColor = isSheet ? "var(--text-dim)" : "var(--muted-fg)";
+      const srcColor = isSheet ? "var(--success)" : "var(--muted)";
+      return `<tr>
+        <td>${f.label}</td>
+        <td style="color:${valColor}">${display}</td>
+        <td style="color:${srcColor}">${isSheet ? "sheet" : "dummy"}</td>
+      </tr>`;
+    }).join("") +
+    `</table>`;
+
+  // Checklist
   $("fieldsChecklist").innerHTML = FILL_FIELDS.map(
     (f) => `
     <div class="check-item" id="check-${f.key}">
