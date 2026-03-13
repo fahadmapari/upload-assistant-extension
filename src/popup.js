@@ -721,6 +721,10 @@ async function startFill() {
     if (!tab) {
       throw new Error("No active tab found");
     }
+    const REQUIRED_URL = "https://trav-ui-admin-prod.azurewebsites.net/#/admin/product/add";
+    if (tab.url !== REQUIRED_URL) {
+      throw new Error(`Autofill only works on the product add page.\nPlease navigate to:\n${REQUIRED_URL}`);
+    }
     const result = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: injectTourData,
