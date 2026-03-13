@@ -666,6 +666,12 @@ async function startFill() {
   $("startFillBtn").innerHTML = '<div class="spinner"></div> Filling…';
   setStatus("busy");
 
+  // Compute start/end dates at fill time
+  const _now = new Date();
+  const _end = new Date(_now);
+  _end.setFullYear(_end.getFullYear() + 2);
+  const _fmt = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+
   // Merge: dummy base → overridden by real sheet values where available
   const fillData = {
     ...DUMMY,
@@ -683,6 +689,8 @@ async function startFill() {
     cancellationRequest: selectedTour.cancellationRequest || null,
     release: selectedTour.release || DUMMY.release,
     releaseRequest: selectedTour.releaseRequest || null,
+    startDate: _fmt(_now),
+    endDate: _fmt(_end),
   };
 
   try {
@@ -776,6 +784,67 @@ function injectTourData(tour) {
     if (header.getAttribute("aria-expanded") !== "true") {
       header.click();
       await sleep(600);
+    }
+  }
+
+  async function fillNgbDatepicker(controlName, dateStr) {
+    if (!dateStr) return;
+    const [mm, dd, yyyy] = dateStr.split("/").map(Number);
+    const input = document.querySelector(`[formcontrolname="${controlName}"]`);
+    if (!input) { failed.push(controlName); return; }
+    try {
+      await ensurePanelOpen(input);
+      input.click();
+      await sleep(500);
+
+      // Datepicker uses container="body" so it appends to <body>
+      const picker = document.querySelector("ngb-datepicker.ngb-dp-body, ngb-datepicker.show");
+      if (!picker) {
+        errors[controlName] = "Datepicker popup did not open";
+        failed.push(controlName);
+        return;
+      }
+
+      const yearSel = picker.querySelector("select[aria-label='Select year']");
+      const monthSel = picker.querySelector("select[aria-label='Select month']");
+
+      // Set year first (affects which months are selectable)
+      if (yearSel && yearSel.value !== String(yyyy)) {
+        yearSel.value = String(yyyy);
+        yearSel.dispatchEvent(new Event("change", { bubbles: true }));
+        await sleep(300);
+      }
+      // Then set month
+      if (monthSel && monthSel.value !== String(mm)) {
+        monthSel.value = String(mm);
+        monthSel.dispatchEvent(new Event("change", { bubbles: true }));
+        await sleep(300);
+      }
+
+      // Click the matching day — skip "outside" (adjacent-month) cells
+      const dayEls = picker.querySelectorAll(".ngb-dp-day:not(.disabled)");
+      let clicked = false;
+      for (const dayEl of dayEls) {
+        const inner = dayEl.querySelector("[ngbdatepickerdayview]");
+        if (!inner || inner.classList.contains("outside")) continue;
+        if (inner.textContent.trim() === String(dd)) {
+          dayEl.click();
+          clicked = true;
+          break;
+        }
+      }
+
+      if (clicked) {
+        filled.push(controlName);
+      } else {
+        errors[controlName] = `Day ${dd} not found in picker (month ${mm}/${yyyy})`;
+        document.body.click();
+        failed.push(controlName);
+      }
+      await sleep(200);
+    } catch (e) {
+      errors[controlName] = e.message;
+      failed.push(controlName);
     }
   }
 
@@ -990,6 +1059,8 @@ function injectTourData(tour) {
     await fillByControl("publicHolidaySurchargePercentage", tour.holidaySupplement);
     await fillByControl("weekendSupplementPercentage", tour.weekendSupplement);
     // Schedule
+    await fillNgbDatepicker("startDate", tour.startDate);
+    await fillNgbDatepicker("endDate", tour.endDate);
     await fillByControl("startTime", tour.startTime);
     await fillByControl("endTime", tour.endTime);
     // Cancellation & cut off — two separate fields for instant vs on-request
