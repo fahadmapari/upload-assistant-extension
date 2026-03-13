@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (el) el.value = config[id] || fallback;
     });
     showPanel('panelList');
+    if (!config.sheetName) fetchAndStoreSheetTitle().then(updateConfigBar);
     updateConfigBar();
     loadTours(false);
   }
@@ -152,14 +153,31 @@ async function saveAndLoad() {
 
   config = cfg;
   await saveConfig(cfg);
+  await fetchAndStoreSheetTitle();
   updateConfigBar();
   showPanel('panelList');
   loadTours(true);
 }
 
+async function fetchAndStoreSheetTitle() {
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?fields=properties.title&key=${config.apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+    const title = data.properties?.title;
+    if (title) {
+      config.sheetName = title;
+      await saveConfig(config);
+    }
+  } catch { /* silently ignore — title is cosmetic */ }
+}
+
 function updateConfigBar() {
   $('configBar').style.display = 'flex';
-  $('configSheetInfo').textContent = `Sheet: ${config.sheetId.slice(0, 18)}…`;
+  const name = config.sheetName || config.sheetId.slice(0, 20) + '…';
+  const tab  = config.sheetTab || 'Sheet1';
+  $('configSheetInfo').textContent = `${name}  ·  ${tab}`;
   $('configConnStatus').textContent = '● connected';
   $('configConnStatus').className = 'connected';
 }
