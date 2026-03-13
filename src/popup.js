@@ -260,7 +260,7 @@ async function loadTours(forceFresh = false) {
     // Build the range from only the configured columns
     // Always wrap tab name in single quotes to handle spaces and special characters.
     // The entire range must be encoded AFTER the quotes are added.
-    const range = `'${config.sheetTab}'!A1:Z500`;
+    const range = `'${config.sheetTab}'!A:Z`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(range)}?key=${config.apiKey}`;
 
     console.log("[TourExt] Fetching range:", range);
