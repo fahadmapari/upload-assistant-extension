@@ -5,24 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tour Admin Autofill</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0f1117;
-      --surface:   #181c27;
-      --surface2:  #1f2436;
-      --border:    #2a3050;
-      --accent:    #4f8ef7;
-      --accent2:   #7c3aed;
+      --bg:        #09090b;
+      --surface:   #18181b;
+      --surface2:  #27272a;
+      --border:    #3f3f46;
+      --border-light: #52525b;
+      --accent:    #fafafa;
+      --accent-fg: #18181b;
       --success:   #22c55e;
       --warning:   #f59e0b;
-      --danger:    #ef4444;
-      --text:      #e8eaf6;
-      --muted:     #6b7280;
-      --mono:      'DM Mono', monospace;
-      --sans:      'DM Sans', sans-serif;
+      --danger:    #f87171;
+      --text:      #fafafa;
+      --text-dim:  #d4d4d8;
+      --muted:     #71717a;
+      --muted-fg:  #a1a1aa;
+      --radius:    6px;
+      --sans:      'Inter', system-ui, -apple-system, sans-serif;
+      --mono:      ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
     }
 
     body {
@@ -37,50 +41,40 @@
 
     /* ── Header ── */
     .header {
-      background: linear-gradient(135deg, #1a1f35 0%, #0f1117 100%);
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 14px 16px 12px;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       gap: 10px;
-      position: relative;
-    }
-    .header::after {
-      content: '';
-      position: absolute;
-      bottom: -1px; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2), transparent);
-      opacity: 0.6;
     }
     .logo {
-      width: 30px; height: 30px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border-radius: 8px;
+      width: 28px; height: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       display: flex; align-items: center; justify-content: center;
-      font-size: 15px; flex-shrink: 0;
+      font-size: 14px; flex-shrink: 0;
     }
     .header-text h1 {
-      font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
-      color: var(--text);
+      font-size: 13px; font-weight: 600;
+      color: var(--text); letter-spacing: -0.01em;
     }
     .header-text p {
-      font-size: 10px; color: var(--muted); margin-top: 1px;
-      font-family: var(--mono);
+      font-size: 11px; color: var(--muted); margin-top: 1px;
     }
     .status-dot {
       margin-left: auto;
       width: 7px; height: 7px;
       border-radius: 50%;
-      background: var(--muted);
-      box-shadow: 0 0 0 2px rgba(107,114,128,0.2);
+      background: var(--border-light);
       transition: all 0.3s;
       flex-shrink: 0;
     }
-    .status-dot.ready  { background: var(--success); box-shadow: 0 0 6px var(--success); }
-    .status-dot.busy   { background: var(--warning);  box-shadow: 0 0 6px var(--warning); animation: pulse 1s infinite; }
-    .status-dot.error  { background: var(--danger);   box-shadow: 0 0 6px var(--danger); }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-dot.ready  { background: var(--success); }
+    .status-dot.busy   { background: var(--warning); animation: pulse 1s infinite; }
+    .status-dot.error  { background: var(--danger); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
     /* ── Panels ── */
     .panel { display: none; flex-direction: column; }
@@ -91,37 +85,40 @@
 
     .field-group label {
       display: block;
-      font-size: 10px; font-weight: 500;
-      color: var(--muted); text-transform: uppercase;
-      letter-spacing: 0.08em; margin-bottom: 5px;
-      font-family: var(--mono);
+      font-size: 12px; font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 6px;
     }
     .field-group input {
       width: 100%;
-      background: var(--surface);
+      background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 8px 10px;
-      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: var(--radius);
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      height: 34px;
     }
-    .field-group input:focus { border-color: var(--accent); }
+    .field-group input:focus {
+      border-color: var(--border-light);
+      box-shadow: 0 0 0 3px rgba(250,250,250,0.07);
+    }
     .field-group input::placeholder { color: var(--muted); }
 
     .help-text {
-      font-size: 10px; color: var(--muted);
-      margin-top: 4px; line-height: 1.4;
+      font-size: 11px; color: var(--muted);
+      margin-top: 5px; line-height: 1.5;
     }
-    .help-text a { color: var(--accent); text-decoration: none; }
+    .help-text a { color: var(--muted-fg); text-decoration: underline; text-underline-offset: 2px; }
 
     .col-section-label {
-      font-size: 10px; font-weight: 500; text-transform: uppercase;
-      letter-spacing: 0.08em; color: var(--accent);
-      font-family: var(--mono); padding: 4px 0 2px;
-      border-bottom: 1px solid var(--border); margin-bottom: 2px;
+      font-size: 11px; font-weight: 500;
+      color: var(--muted-fg);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
     }
     .col-grid {
       display: grid; grid-template-columns: 1fr 1fr;
@@ -131,50 +128,53 @@
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
-    /* col inputs: no forced case — user types as-is */
 
     /* ── Tour List Panel ── */
     .tour-body { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
 
     .search-row {
-      display: flex; gap: 8px; align-items: center;
+      display: flex; gap: 6px; align-items: center;
     }
     .search-row input {
       flex: 1;
-      background: var(--surface);
+      background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
       font-family: var(--sans);
       font-size: 12px;
       padding: 7px 10px;
-      border-radius: 6px;
+      border-radius: var(--radius);
       outline: none;
-      transition: border-color 0.2s;
+      height: 34px;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .search-row input:focus { border-color: var(--accent); }
+    .search-row input:focus {
+      border-color: var(--border-light);
+      box-shadow: 0 0 0 3px rgba(250,250,250,0.07);
+    }
+    .search-row input::placeholder { color: var(--muted); }
 
     .btn-icon {
-      width: 30px; height: 30px;
-      background: var(--surface);
+      width: 34px; height: 34px;
+      background: var(--bg);
       border: 1px solid var(--border);
-      color: var(--muted);
-      border-radius: 6px;
+      color: var(--muted-fg);
+      border-radius: var(--radius);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       font-size: 14px;
       transition: all 0.15s;
       flex-shrink: 0;
     }
-    .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-icon:hover { background: var(--surface2); color: var(--text); border-color: var(--border-light); }
 
     .section-label {
-      font-size: 10px; font-weight: 500;
-      color: var(--muted); text-transform: uppercase;
-      letter-spacing: 0.08em; font-family: var(--mono);
+      font-size: 11px; font-weight: 500;
+      color: var(--muted); letter-spacing: 0.01em;
     }
 
     .tour-list {
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex; flex-direction: column; gap: 4px;
       max-height: 280px; overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
@@ -183,72 +183,63 @@
     .tour-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius);
       padding: 10px 12px;
       cursor: pointer;
       transition: all 0.15s;
-      position: relative;
-      overflow: hidden;
       flex-shrink: 0;
     }
-    .tour-card::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 3px;
-      background: linear-gradient(var(--accent), var(--accent2));
-      opacity: 0;
-      transition: opacity 0.15s;
+    .tour-card:hover { background: var(--surface2); border-color: var(--border-light); }
+    .tour-card.selected {
+      background: var(--surface2);
+      border-color: var(--border-light);
+      box-shadow: 0 0 0 1px var(--border-light);
     }
-    .tour-card:hover { border-color: var(--accent); background: var(--surface2); }
-    .tour-card:hover::before { opacity: 1; }
-    .tour-card.selected { border-color: var(--accent); background: var(--surface2); }
-    .tour-card.selected::before { opacity: 1; }
 
     .tour-card-title {
       font-size: 12px; font-weight: 500; color: var(--text);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .tour-card-meta {
-      display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;
+      display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap;
     }
     .tag {
-      font-size: 9px; font-family: var(--mono);
-      padding: 2px 6px; border-radius: 3px;
-      background: var(--surface2); color: var(--muted);
+      font-size: 10px; font-family: var(--mono);
+      padding: 1px 6px; border-radius: 4px;
+      background: var(--surface2); color: var(--muted-fg);
       border: 1px solid var(--border);
     }
-    .tag.blue  { color: var(--accent);   border-color: rgba(79,142,247,0.3); background: rgba(79,142,247,0.08); }
-    .tag.green { color: var(--success);  border-color: rgba(34,197,94,0.3);  background: rgba(34,197,94,0.08); }
+    .tag.blue  { color: #93c5fd; border-color: rgba(147,197,253,0.2); background: rgba(147,197,253,0.07); }
+    .tag.green { color: #86efac; border-color: rgba(134,239,172,0.2); background: rgba(134,239,172,0.07); }
 
     .empty-state {
-      text-align: center; padding: 30px 16px;
+      text-align: center; padding: 32px 16px;
       color: var(--muted); font-size: 12px; line-height: 1.6;
     }
-    .empty-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+    .empty-icon { font-size: 26px; margin-bottom: 8px; opacity: 0.4; }
 
     /* ── Fill Panel ── */
     .fill-body { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
 
     .back-btn {
-      display: flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: center; gap: 5px;
       background: none; border: none;
-      color: var(--muted); font-size: 11px;
+      color: var(--muted); font-size: 12px;
       cursor: pointer; font-family: var(--sans);
       padding: 0; transition: color 0.15s;
       width: fit-content;
     }
-    .back-btn:hover { color: var(--text); }
+    .back-btn:hover { color: var(--text-dim); }
 
     .tour-preview {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius);
       padding: 12px;
     }
     .tour-preview-name {
       font-size: 13px; font-weight: 600; color: var(--text);
-      margin-bottom: 6px;
+      margin-bottom: 8px; letter-spacing: -0.01em;
     }
     .tour-preview-fields {
       display: flex; flex-direction: column; gap: 4px;
@@ -258,26 +249,26 @@
     }
     .preview-key {
       font-family: var(--mono); color: var(--muted);
-      min-width: 90px; flex-shrink: 0;
+      min-width: 90px; flex-shrink: 0; font-size: 10.5px;
     }
-    .preview-val { color: var(--text); }
+    .preview-val { color: var(--text-dim); }
 
     .fields-checklist {
-      display: flex; flex-direction: column; gap: 4px;
+      display: flex; flex-direction: column; gap: 2px;
       max-height: 160px; overflow-y: auto;
     }
     .check-item {
       display: flex; align-items: center; gap: 8px;
-      padding: 5px 8px; border-radius: 5px;
+      padding: 5px 8px; border-radius: 4px;
       font-size: 11px; color: var(--muted);
       transition: background 0.1s;
     }
     .check-item.done   { color: var(--success); }
-    .check-item.active { color: var(--warning); background: rgba(245,158,11,0.06); }
+    .check-item.active { color: var(--warning); background: rgba(245,158,11,0.05); }
     .check-item.error  { color: var(--danger); }
     .check-dot {
       width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-      background: var(--border);
+      background: var(--border-light);
     }
     .check-item.done   .check-dot { background: var(--success); }
     .check-item.active .check-dot { background: var(--warning); animation: pulse 0.8s infinite; }
@@ -285,29 +276,33 @@
 
     /* ── Buttons ── */
     .btn {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 9px 14px; border-radius: 7px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 0 14px; height: 34px;
+      border-radius: var(--radius);
       font-family: var(--sans); font-size: 12px; font-weight: 500;
-      cursor: pointer; border: none; transition: all 0.15s;
-      letter-spacing: 0.01em;
+      cursor: pointer; border: 1px solid transparent;
+      transition: all 0.15s; letter-spacing: 0.01em;
+      white-space: nowrap;
     }
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent), #3b6fd4);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(79,142,247,0.3);
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent);
     }
-    .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 4px 12px rgba(79,142,247,0.4); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+    .btn-primary:hover { background: #e4e4e7; border-color: #e4e4e7; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-secondary {
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text);
+      background: var(--surface2);
+      border-color: var(--border);
+      color: var(--text-dim);
     }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-secondary:hover { background: #3f3f46; border-color: var(--border-light); color: var(--text); }
     .btn-danger {
-      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      background: rgba(248,113,113,0.08);
+      border-color: rgba(248,113,113,0.25);
       color: var(--danger);
     }
-    .btn-danger:hover { background: rgba(239,68,68,0.2); }
+    .btn-danger:hover { background: rgba(248,113,113,0.15); }
 
     .btn-row { display: flex; gap: 8px; }
     .btn-row .btn { flex: 1; }
@@ -317,26 +312,27 @@
       position: fixed; bottom: 12px; left: 12px; right: 12px;
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius);
       padding: 10px 12px;
-      font-size: 11px;
+      font-size: 12px;
       display: flex; align-items: center; gap: 8px;
       transform: translateY(60px); opacity: 0;
       transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
       z-index: 100;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
-    .toast.success { border-color: rgba(34,197,94,0.4); }
-    .toast.error   { border-color: rgba(239,68,68,0.4); }
+    .toast.success { border-color: rgba(34,197,94,0.35); }
+    .toast.error   { border-color: rgba(248,113,113,0.35); }
 
     /* ── Settings gear ── */
     .settings-btn {
       background: none; border: none;
       color: var(--muted); cursor: pointer;
-      font-size: 14px; padding: 2px;
+      font-size: 14px; padding: 4px;
       transition: color 0.15s; line-height: 1;
+      border-radius: 4px;
     }
-    .settings-btn:hover { color: var(--text); }
+    .settings-btn:hover { color: var(--text-dim); background: var(--surface2); }
 
     /* ── Divider ── */
     .divider {
@@ -347,8 +343,8 @@
     /* ── Loading spinner ── */
     .spinner {
       width: 12px; height: 12px;
-      border: 2px solid rgba(255,255,255,0.2);
-      border-top-color: #fff;
+      border: 1.5px solid rgba(9,9,11,0.3);
+      border-top-color: var(--accent-fg);
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
       flex-shrink: 0;
@@ -357,14 +353,17 @@
 
     /* ── Config status bar ── */
     .config-bar {
-      padding: 6px 16px;
+      padding: 5px 16px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
-      font-size: 10px; color: var(--muted); font-family: var(--mono);
+      font-size: 11px; color: var(--muted);
     }
     .config-bar .connected { color: var(--success); }
     .config-bar .disconnected { color: var(--danger); }
+
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
   </style>
 </head>
 <body>
@@ -372,10 +371,12 @@
 <div class="header">
   <div class="logo">✈</div>
   <div class="header-text">
-    <h1>Tour Admin Autofill</h1>
+    <h1>Tour Autofill</h1>
     <p>Google Sheets → Admin Panel</p>
   </div>
-  <button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
+  <button class="settings-btn" id="settingsBtn" title="Settings">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+  </button>
   <div class="status-dot" id="statusDot"></div>
 </div>
 
@@ -389,7 +390,10 @@
 <div class="panel active" id="panelSetup">
   <div class="setup-body">
 
-    <button class="back-btn" id="setupCloseBtn" style="display:none">← Back to tours</button>
+    <button class="back-btn" id="setupCloseBtn" style="display:none">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to tours
+    </button>
 
     <div class="col-section-label">Connection</div>
 
@@ -409,11 +413,12 @@
 
     <!-- Legacy API key — kept for future fallback use, not currently active -->
     <details style="margin-top:-4px">
-      <summary style="font-size:10px;color:var(--muted);cursor:pointer;font-family:var(--mono);letter-spacing:0.05em">
+      <summary style="font-size:11px;color:var(--muted);cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
         Legacy API Key (unused)
       </summary>
-      <div class="field-group" style="margin-top:8px">
-        <label>Google API Key <span style="color:var(--muted)">(optional)</span></label>
+      <div class="field-group" style="margin-top:10px">
+        <label>Google API Key <span style="color:var(--muted);font-weight:400">(optional)</span></label>
         <input type="password" id="apiKey" placeholder="AIza…" />
         <div class="help-text">Not used while OAuth is active. Kept for fallback if needed.</div>
       </div>
@@ -498,7 +503,9 @@
   <div class="tour-body">
     <div class="search-row">
       <input type="text" id="searchInput" placeholder="Search tours…" />
-      <button class="btn-icon" id="refreshBtn" title="Refresh">↻</button>
+      <button class="btn-icon" id="refreshBtn" title="Refresh">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
     </div>
     <div class="section-label" id="tourCountLabel">Loading…</div>
     <div class="tour-list" id="tourList">
@@ -508,7 +515,8 @@
       </div>
     </div>
     <button class="btn btn-primary" id="selectFillBtn" disabled>
-      Fill Selected Tour →
+      Fill Selected Tour
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
   </div>
 </div>
@@ -516,7 +524,10 @@
 <!-- ══ PANEL: Fill ══ -->
 <div class="panel" id="panelFill">
   <div class="fill-body">
-    <button class="back-btn" id="backBtn">← Back to tours</button>
+    <button class="back-btn" id="backBtn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to tours
+    </button>
 
     <div class="tour-preview" id="tourPreview">
       <div class="tour-preview-name" id="previewName">—</div>
@@ -531,7 +542,8 @@
     <div class="btn-row">
       <button class="btn btn-secondary" id="openSectionBtn">Open All Sections</button>
       <button class="btn btn-primary" id="startFillBtn">
-        ▶ Start Autofill
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Start Autofill
       </button>
     </div>
   </div>
