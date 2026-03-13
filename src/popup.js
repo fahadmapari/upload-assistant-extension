@@ -131,15 +131,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 // ── Config ─────────────────────────────────────────────
 function loadConfig() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(["tourExtConfig"], (r) =>
-      resolve(r.tourExtConfig || {}),
-    );
+    chrome.storage.local.get(["tourExtConfig"], (r) => {
+      if (chrome.runtime.lastError) {
+        console.error("[TourExt] loadConfig error:", chrome.runtime.lastError.message);
+        resolve({});
+      } else {
+        resolve(r.tourExtConfig || {});
+      }
+    });
   });
 }
 
 function saveConfig(cfg) {
   return new Promise((resolve) => {
-    chrome.storage.local.set({ tourExtConfig: cfg }, resolve);
+    chrome.storage.local.set({ tourExtConfig: cfg }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("[TourExt] saveConfig error:", chrome.runtime.lastError.message);
+      }
+      resolve();
+    });
   });
 }
 
@@ -175,9 +185,13 @@ function debounce(fn, ms) {
 }
 
 const autoSaveConfig = debounce(async () => {
-  const cfg = buildConfig();
-  config = cfg;
-  await saveConfig(cfg);
+  try {
+    const cfg = buildConfig();
+    config = cfg;
+    await saveConfig(cfg);
+  } catch (e) {
+    console.error("[TourExt] autoSaveConfig error:", e.message);
+  }
 }, 600);
 
 async function saveAndLoad() {
@@ -208,7 +222,12 @@ function getOAuthToken(interactive = false) {
 }
 
 function removeCachedToken(token) {
-  return new Promise(resolve => chrome.identity.removeCachedAuthToken({ token }, resolve));
+  return new Promise(resolve => chrome.identity.removeCachedAuthToken({ token }, () => {
+    if (chrome.runtime.lastError) {
+      console.warn("[TourExt] removeCachedAuthToken error:", chrome.runtime.lastError.message);
+    }
+    resolve();
+  }));
 }
 
 // Fetch with automatic token-refresh on 401/403 (handles stale/insufficient-scope tokens)
@@ -253,14 +272,24 @@ function updateConfigBar() {
 // ── Tour cache ─────────────────────────────────────────
 function saveCachedTours(data) {
   return new Promise((resolve) =>
-    chrome.storage.local.set({ tourExtCache: data }, resolve),
+    chrome.storage.local.set({ tourExtCache: data }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("[TourExt] saveCachedTours error:", chrome.runtime.lastError.message);
+      }
+      resolve();
+    }),
   );
 }
 function loadCachedTours() {
   return new Promise((resolve) =>
-    chrome.storage.local.get(["tourExtCache"], (r) =>
-      resolve(r.tourExtCache || null),
-    ),
+    chrome.storage.local.get(["tourExtCache"], (r) => {
+      if (chrome.runtime.lastError) {
+        console.error("[TourExt] loadCachedTours error:", chrome.runtime.lastError.message);
+        resolve(null);
+      } else {
+        resolve(r.tourExtCache || null);
+      }
+    }),
   );
 }
 
@@ -293,12 +322,15 @@ async function loadTours(forceFresh = false) {
     const res = await authedFetch(url, true);
     console.log("[TourExt] Response status:", res.status);
     if (!res.ok) {
-      const err = await res.json();
-      console.error(
-        "[TourExt] API error response:",
-        JSON.stringify(err, null, 2),
-      );
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
+      let errMsg = `HTTP ${res.status}`;
+      try {
+        const err = await res.json();
+        console.error("[TourExt] API error response:", JSON.stringify(err, null, 2));
+        errMsg = err.error?.message || errMsg;
+      } catch (jsonErr) {
+        console.error("[TourExt] Could not parse error response body:", jsonErr.message);
+      }
+      throw new Error(errMsg);
     }
 
     const data = await res.json();
@@ -439,6 +471,10 @@ function renderVisible() {
 
 function selectTour(rowNum) {
   selectedTour = tours.find((t) => t.rowNum === rowNum);
+  if (!selectedTour) {
+    console.error("[TourExt] selectTour: no tour found for rowNum", rowNum);
+    return;
+  }
   // Update visible cards only — off-screen cards get correct class on next renderVisible()
   document.querySelectorAll(".tour-card").forEach((c) => {
     c.classList.toggle("selected", parseInt(c.dataset.row) === rowNum);
@@ -466,18 +502,32 @@ function filterTours(query) {
 // ── Google Docs fetch (via chrome.identity OAuth) ──────
 async function fetchGoogleDoc(docUrl) {
   const match = docUrl && docUrl.match(/\/d\/([\w-]+)/);
-  if (!match) return null;
+  if (!match) {
+    console.warn("[TourExt] fetchGoogleDoc: invalid or missing doc URL:", docUrl);
+    return null;
+  }
   const docId = match[1];
 
-  const res = await authedFetch(`https://docs.googleapis.com/v1/documents/${docId}`, true);
+  try {
+    const res = await authedFetch(`https://docs.googleapis.com/v1/documents/${docId}`, true);
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error?.message || `Docs API ${res.status}`);
+    if (!res.ok) {
+      let errMsg = `Docs API ${res.status}`;
+      try {
+        const err = await res.json();
+        errMsg = err.error?.message || errMsg;
+      } catch (jsonErr) {
+        console.error("[TourExt] fetchGoogleDoc: could not parse error response:", jsonErr.message);
+      }
+      throw new Error(errMsg);
+    }
+
+    // Return raw document object — caller is responsible for parsing
+    return await res.json();
+  } catch (e) {
+    console.error("[TourExt] fetchGoogleDoc failed for docId", docId, ":", e.message);
+    throw e;
   }
-
-  // Return raw document object — caller is responsible for parsing
-  return await res.json();
 }
 
 // ── Fill Panel ──────────────────────────────────────────
@@ -609,6 +659,9 @@ async function openAllSections() {
       active: true,
       currentWindow: true,
     });
+    if (!tab) {
+      throw new Error("No active tab found");
+    }
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
@@ -623,6 +676,7 @@ async function openAllSections() {
     });
     showToast("Opening sections — wait 2s then autofill", "info");
   } catch (e) {
+    console.error("[TourExt] openAllSections failed:", e.message);
     showToast("Could not open sections: " + e.message, "error");
   }
 }
@@ -658,6 +712,9 @@ async function startFill() {
       active: true,
       currentWindow: true,
     });
+    if (!tab) {
+      throw new Error("No active tab found");
+    }
     const result = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: injectTourData,
@@ -680,6 +737,7 @@ async function startFill() {
       throw new Error(outcome?.error || "Unknown error");
     }
   } catch (e) {
+    console.error("[TourExt] startFill failed:", e.message);
     showToast("Fill failed: " + e.message, "error");
     setStatus("error");
   }
@@ -760,7 +818,8 @@ function injectTourData(tour) {
         failed.push(controlName);
       }
       await sleep(150);
-    } catch {
+    } catch (e) {
+      console.error("[TourExt] fillNgSelect failed for", controlName, ":", e.message);
       failed.push(controlName);
     }
   }
@@ -778,7 +837,8 @@ function injectTourData(tour) {
       editor.dispatchEvent(new Event("input", { bubbles: true }));
       editor.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
       filled.push("description");
-    } catch {
+    } catch (e) {
+      console.error("[TourExt] fillQuill failed:", e.message);
       failed.push("description");
     }
   }
