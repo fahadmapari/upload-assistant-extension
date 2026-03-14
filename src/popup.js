@@ -350,11 +350,40 @@ async function loadTours(forceFresh = false) {
       return;
     }
 
+    // Fetch hyperlinks from the title column (URLs embedded as hyperlinks, not plain text)
+    const titleColLetter = config.colTitle || "A";
+    const hlRange = `'${config.sheetTab}'!${titleColLetter}:${titleColLetter}`;
+    const hlUrl = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?includeGridData=true&ranges=${encodeURIComponent(hlRange)}&fields=sheets.data.rowData.values(hyperlink,userEnteredValue)`;
+    let titleHyperlinks = [];
+    try {
+      const hlRes = await authedFetch(hlUrl, true);
+      if (hlRes.ok) {
+        const hlData = await hlRes.json();
+        const rowData = hlData.sheets?.[0]?.data?.[0]?.rowData || [];
+        titleHyperlinks = rowData.map((r) => {
+          const cell = r.values?.[0];
+          if (!cell) return "";
+          if (cell.hyperlink) return cell.hyperlink;
+          const formula = cell.userEnteredValue?.formulaValue || "";
+          const m = formula.match(/=HYPERLINK\s*\(\s*"([^"]+)"/i);
+          return m ? m[1] : "";
+        });
+        // Index 0 is the header row — shift so index 0 = first data row
+        titleHyperlinks = titleHyperlinks.slice(1);
+        console.log("[TourExt] Hyperlinks fetched:", titleHyperlinks.filter(Boolean).length);
+      } else {
+        const errText = await hlRes.text();
+        console.warn("[TourExt] Hyperlink fetch failed:", hlRes.status, errText);
+      }
+    } catch (hlErr) {
+      console.warn("[TourExt] Could not fetch title hyperlinks:", hlErr.message);
+    }
+
     const headers = rows[0].map((h) => h.toLowerCase().trim());
 
     tours = rows
       .slice(1)
-      .map((row, i) => buildTour(headers, row, i + 2))
+      .map((row, i) => buildTour(headers, row, i + 2, titleHyperlinks[i] || ""))
       .filter((t) => t.title);
 
     filteredTours = [...tours];
@@ -372,7 +401,7 @@ async function loadTours(forceFresh = false) {
   }
 }
 
-function buildTour(headers, row, rowNum) {
+function buildTour(headers, row, rowNum, titleHyperlink = "") {
   // Helper: get cell value by configured column letter (e.g. "A" → index 0)
   const col = (cfgKey) => {
     const letter = config[cfgKey];
@@ -381,10 +410,13 @@ function buildTour(headers, row, rowNum) {
     return (row[idx] || "").trim();
   };
 
+  // Prefer the hyperlink embedded in the title cell; fall back to a plain-text docUrl column
+  const docUrl = titleHyperlink || col("colDocUrl");
+
   return {
     rowNum,
     title: col("colTitle"),
-    docUrl: col("colDocUrl"),
+    docUrl,
     country: col("colCountry"),
     city: col("colCity"),
     duration: col("colDuration"),
@@ -636,9 +668,21 @@ function goToFillPanel(tour) {
     endTime: _endTime,
   };
 
-  // Preview: show every FILL_FIELDS entry with its resolved value
+  // Preview: doc URL row at top, then every FILL_FIELDS entry
+  const docUrlRow = (() => {
+    const raw = tour.docUrl || "";
+    const url = raw && !/^https?:\/\//i.test(raw) ? "https://" + raw : raw;
+    const cell = url
+      ? `<a href="${url}" target="_blank" title="${url}">${url.length > 50 ? url.slice(0, 50) + "…" : url}</a>`
+      : `<span style="color:var(--muted)">— No doc linked</span>`;
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td>Doc URL</td>
+      <td colspan="2">${cell}</td>
+    </tr>`;
+  })();
+
   $("previewFields").innerHTML =
-    `<table class="preview-table">` +
+    `<table class="preview-table">${docUrlRow}` +
     FILL_FIELDS.map((f) => {
       const raw = fillData[f.key];
       const display = Array.isArray(raw)
