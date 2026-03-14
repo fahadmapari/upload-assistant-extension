@@ -3,6 +3,14 @@ let config = {};
 let tours = [];
 let selectedTour = null;
 let filteredTours = [];
+let currentDocTour = null; // parsed tour data from Google Doc
+
+// Fields populated from the Google Doc (not sheet or dummy)
+const DOC_FIELDS = new Set([
+  "description", "willSee", "willLearn",
+  "included", "notIncluded", "mandatoryInfo",
+  "meetingPoint", "endPoint",
+]);
 
 const $ = (id) => document.getElementById(id);
 
@@ -635,10 +643,33 @@ const FILL_FIELDS = [
   { key: "isB2BEnabled", label: "B2B Enabled", source: "dummy" },
 ];
 
-function goToFillPanel(tour) {
-  $("previewName").textContent = tour.title;
+// ── Doc tour matching ───────────────────────────────────
+function findMatchingDocTour(allTours, sheetTitle) {
+  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+  const target = norm(sheetTitle);
+  return (
+    allTours.find((t) => norm(t.title) === target) ||
+    allTours.find((t) => norm(t.title).includes(target) || target.includes(norm(t.title)))
+  ) || null;
+}
 
-  // Build the same merged data that will actually be filled
+// Merges parsed doc data into an existing fillData object (mutates in place)
+function mergeDocData(fillData) {
+  if (!currentDocTour) return;
+  const d = currentDocTour;
+  if (d.description)        fillData.description  = d.description;
+  if (d.youWillSee?.length) fillData.willSee       = d.youWillSee.join("\n");
+  if (d.youWillLearn?.length) fillData.willLearn   = d.youWillLearn.join("\n");
+  if (d.inclusions?.length) fillData.included      = d.inclusions.join(",");
+  if (d.exclusions?.length) fillData.notIncluded   = d.exclusions.join(",");
+  if (d.additionalInfo?.length) fillData.mandatoryInfo = d.additionalInfo[0] || "";
+  if (d.meetingPoint)       fillData.meetingPoint  = d.meetingPoint;
+  if (d.endLocation)        fillData.endPoint      = d.endLocation;
+}
+
+async function goToFillPanel(tour) {
+  currentDocTour = null;
+
   const _now = new Date();
   const _end = new Date(_now);
   _end.setFullYear(_end.getFullYear() + 2);
@@ -646,73 +677,110 @@ function goToFillPanel(tour) {
   const _durHours = parseInt((tour.duration || "").replace(/h.*/i, "")) || 0;
   const _endTime = `${String(Math.max(0, 22 - _durHours)).padStart(2, "0")}:00`;
 
-  const fillData = {
-    ...DUMMY,
-    title: tour.title,
-    serviceType: "Guide",
-    subType: tour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
-    country: tour.country || DUMMY.country,
-    city: tour.city || DUMMY.city,
-    duration: tour.duration || DUMMY.duration,
-    rate: tour.rate || DUMMY.rate,
-    rateRequest: tour.rateRequest || DUMMY.rateRequest,
-    rateB2C: tour.rateB2C || DUMMY.rateB2C,
-    rateRequestB2C: tour.rateRequestB2C || DUMMY.rateRequestB2C,
-    cancellation: tour.cancellation || DUMMY.cancellation,
-    cancellationRequest: tour.cancellationRequest || null,
-    release: tour.release || DUMMY.release,
-    releaseRequest: tour.releaseRequest || null,
-    startDate: _fmt(_now),
-    endDate: _fmt(_end),
-    startTime: "08:00",
-    endTime: _endTime,
-  };
+  function buildFillData() {
+    const data = {
+      ...DUMMY,
+      title: tour.title,
+      serviceType: "Guide",
+      subType: tour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
+      country: tour.country || DUMMY.country,
+      city: tour.city || DUMMY.city,
+      duration: tour.duration || DUMMY.duration,
+      rate: tour.rate || DUMMY.rate,
+      rateRequest: tour.rateRequest || DUMMY.rateRequest,
+      rateB2C: tour.rateB2C || DUMMY.rateB2C,
+      rateRequestB2C: tour.rateRequestB2C || DUMMY.rateRequestB2C,
+      cancellation: tour.cancellation || DUMMY.cancellation,
+      cancellationRequest: tour.cancellationRequest || null,
+      release: tour.release || DUMMY.release,
+      releaseRequest: tour.releaseRequest || null,
+      startDate: _fmt(_now),
+      endDate: _fmt(_end),
+      startTime: "08:00",
+      endTime: _endTime,
+    };
+    mergeDocData(data);
+    return data;
+  }
 
-  // Preview: doc URL row at top, then every FILL_FIELDS entry
-  const docUrlRow = (() => {
+  function renderPreview(fillData, docBadge) {
+    $("previewName").textContent = tour.title;
+
     const raw = tour.docUrl || "";
     const url = raw && !/^https?:\/\//i.test(raw) ? "https://" + raw : raw;
     const cell = url
       ? `<a href="${url}" target="_blank" title="${url}">${url.length > 50 ? url.slice(0, 50) + "…" : url}</a>`
       : `<span style="color:var(--muted)">— No doc linked</span>`;
-    return `<tr style="border-bottom:1px solid var(--border)">
+    const badge = docBadge
+      ? `&nbsp;<span style="color:${docBadge.color};font-size:9px;font-family:var(--mono)">${docBadge.text}</span>`
+      : "";
+    const docUrlRow = `<tr style="border-bottom:1px solid var(--border)">
       <td>Doc URL</td>
-      <td colspan="2">${cell}</td>
+      <td colspan="2">${cell}${badge}</td>
     </tr>`;
-  })();
 
-  $("previewFields").innerHTML =
-    `<table class="preview-table">${docUrlRow}` +
-    FILL_FIELDS.map((f) => {
-      const raw = fillData[f.key];
-      const display = Array.isArray(raw)
-        ? raw.join(", ")
-        : (raw != null && raw !== "" ? String(raw) : "—");
-      const isSheet = f.source === "sheet";
-      const valColor = isSheet ? "var(--text-dim)" : "var(--muted-fg)";
-      const srcColor = isSheet ? "var(--success)" : "var(--muted)";
-      return `<tr>
-        <td>${f.label}</td>
-        <td style="color:${valColor}">${display}</td>
-        <td style="color:${srcColor}">${isSheet ? "sheet" : "dummy"}</td>
-      </tr>`;
-    }).join("") +
-    `</table>`;
+    $("previewFields").innerHTML =
+      `<table class="preview-table">${docUrlRow}` +
+      FILL_FIELDS.map((f) => {
+        const val = fillData[f.key];
+        const display = Array.isArray(val)
+          ? val.join(", ")
+          : (val != null && val !== "" ? String(val) : "—");
+        const src = f.source === "sheet"
+          ? "sheet"
+          : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "dummy");
+        const valColor = src === "sheet" ? "var(--text-dim)" : src === "doc" ? "#a5b4fc" : "var(--muted-fg)";
+        const srcColor = src === "sheet" ? "var(--success)" : src === "doc" ? "#818cf8" : "var(--muted)";
+        return `<tr>
+          <td>${f.label}</td>
+          <td style="color:${valColor}">${display}</td>
+          <td style="color:${srcColor}">${src}</td>
+        </tr>`;
+      }).join("") +
+      `</table>`;
 
-  // Checklist
-  $("fieldsChecklist").innerHTML = FILL_FIELDS.map(
-    (f) => `
-    <div class="check-item" id="check-${f.key}">
-      <div class="check-dot"></div>
-      <span>${f.label}</span>
-      <span style="margin-left:auto;font-size:9px;font-family:var(--mono);color:${f.source === "sheet" ? "var(--success)" : "var(--muted)"}">
-        ${f.source === "sheet" ? "sheet" : "dummy"}
-      </span>
-    </div>
-  `,
-  ).join("");
+    $("fieldsChecklist").innerHTML = FILL_FIELDS.map((f) => {
+      const src = f.source === "sheet"
+        ? "sheet"
+        : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "dummy");
+      const srcColor = src === "sheet" ? "var(--success)" : src === "doc" ? "#818cf8" : "var(--muted)";
+      return `<div class="check-item" id="check-${f.key}">
+        <div class="check-dot"></div>
+        <span>${f.label}</span>
+        <span style="margin-left:auto;font-size:9px;font-family:var(--mono);color:${srcColor}">${src}</span>
+      </div>`;
+    }).join("");
+  }
 
+  // Show the panel immediately with dummy/sheet data while doc loads
+  renderPreview(buildFillData(), tour.docUrl ? { text: "fetching doc…", color: "var(--warning)" } : null);
   showPanel("panelFill");
+  $("startFillBtn").disabled = true;
+  $("startFillBtn").innerHTML = '<div class="spinner"></div> Loading doc…';
+
+  // Fetch and parse the Google Doc to get real content
+  if (tour.docUrl) {
+    try {
+      const docJson = await fetchGoogleDoc(tour.docUrl);
+      if (docJson) {
+        const allTours = parseParisDoc(docJson);
+        currentDocTour = findMatchingDocTour(allTours, tour.title);
+        if (currentDocTour) {
+          renderPreview(buildFillData(), { text: "✓ doc parsed", color: "var(--success)" });
+        } else {
+          renderPreview(buildFillData(), { text: "title not found in doc", color: "var(--warning)" });
+          showToast("Tour title not found in doc — using dummy data for doc fields", "info");
+        }
+      }
+    } catch (e) {
+      console.warn("[TourExt] Doc fetch/parse failed:", e.message);
+      renderPreview(buildFillData(), { text: `doc fetch failed: ${e.message}`, color: "var(--danger)" });
+    }
+  }
+
+  $("startFillBtn").disabled = false;
+  $("startFillBtn").innerHTML =
+    '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Autofill';
 }
 
 // ── Autofill ────────────────────────────────────────────
@@ -756,6 +824,9 @@ async function startFill() {
     startTime: "08:00",
     endTime: _endTime,
   };
+
+  // Override dummy doc fields with parsed Google Doc data if available
+  mergeDocData(fillData);
 
   try {
     const [tab] = await chrome.tabs.query({
