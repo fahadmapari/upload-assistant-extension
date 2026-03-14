@@ -1,6 +1,6 @@
 /**
  * parisDocParser.js
- * Google Docs API parser for Paris/France Tour Content Documents
+ * Google Docs API parser for Tour Content Documents (Paris / France / Switzerland)
  * Chrome Extension compatible — no dependencies
  *
  * Extracted fields per tour:
@@ -18,7 +18,9 @@ function paragraphElements(paragraph) {
     const tr = el.textRun ?? {};
     return {
       bold: !!tr.textStyle?.bold,
-      text: (tr.content ?? "").replace(/\n$/, ""),
+      // Do NOT strip \n here — preserve soft line breaks between runs.
+      // paragraphText() strips only the final trailing \n.
+      text: tr.content ?? "",
     };
   });
 }
@@ -40,7 +42,7 @@ function paragraphHasBold(paragraph) {
 // ---------------------------------------------------------------------------
 
 /**
- * Separator lines between tour sections — dashes OR underscores.
+ * Separator lines — dashes OR underscores.
  */
 function isSeparator(text) {
   const t = text.trim();
@@ -52,38 +54,68 @@ function splitSoftBreaks(text) {
 }
 
 /**
- * Lines that are editorial noise and should never appear in any field.
- * Covers: "Price is missing", "Price is missing:", "Sources:", "Source:"
- * and any review flag text that slipped through as a plain paragraph.
+ * Pure editorial noise — never belongs in any content field.
+ * Covers: "Price is missing", "Sources:", "Changed to …", "BOKUN",
+ * "VIATOR / EXPEDIA / KLOOK …", "SS note: …", platform distribution lists.
  */
 function isNoiseLine(text) {
-  return /^(price\s+is\s+missing:?\s*$|sources?\s*:?\s*$|changed\s+to\s+.+$)/i.test(text.trim());
+  const t = text.trim();
+  return (
+    /^price\s+is\s+missing:?\s*$/i.test(t)          ||
+    /^sources?\s*:?\s*$/i.test(t)                    ||
+    /^changed\s+to\s+.+$/i.test(t)                   ||
+    /^BOKUN\s*$/i.test(t)                             ||
+    /^(VIATOR|EXPEDIA|KLOOK)/i.test(t)               ||
+    /^SS\s+note\s*:/i.test(t)
+  );
 }
 
 /**
- * Review flag text that can appear as ANY paragraph style (heading or normal).
+ * Review / approval flags that can appear in ANY paragraph style — headings
+ * or plain normal paragraphs, bold or not.
+ * Covers all known variants across Paris, France, and Switzerland docs.
  */
-const REVIEW_FLAG_RE = /^(CC\s+OK|SS\s+(OK.*|CSV.*|re-reviewed.*|reviewed.*)|RR\s+(revised|ok).*|On\s+Hold)/i;
-
 function isReviewFlagText(text) {
-  return REVIEW_FLAG_RE.test(text.trim());
+  const t = text.trim();
+  return (
+    /^(CC\s+OK|IS\s+OK)/i.test(t)                             ||
+    /^(IS\s+OK\s*&\s*CC\s+OK|CC\s+OK\s*&\s*IS\s+OK)/i.test(t) ||
+    /^SS\s*[:\s]/i.test(t)                                     ||
+    /^SS\s+(OK|CSV|re-reviewed|reviewed|REVIEWD?)/i.test(t)    ||
+    /^RR\s+(revised|ok)/i.test(t)                              ||
+    /^On\s+Hold/i.test(t)
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Patterns
 // ---------------------------------------------------------------------------
 
-// HEADING_1 titles that are actually review flags, not tour titles
-const SKIP_TITLE_RE = /^(CC\s+OK\s*$|SS\s+(CSV.*|re-reviewed.*|reviewed.*)|RR\s+(revised|ok).*|On\s+Hold|\s*)$/i;
+// HEADING_1 texts that are review flags, not tour titles
+const SKIP_TITLE_RE = /^(CC\s+OK|IS\s+OK|SS\s+|RR\s+(revised|ok)|On\s+Hold|\s*)$/i;
 
-const REVIEW_STYLES = new Set(["HEADING_1","HEADING_2","HEADING_3","HEADING_4","HEADING_5","HEADING_6"]);
+// Styles we treat as "heading-like" for section label detection
+// Includes "TITLE" which is used sporadically in Switzerland doc
+const HEADING_LIKE_STYLES = new Set([
+  "HEADING_1","HEADING_2","HEADING_3","HEADING_4","HEADING_5","HEADING_6","TITLE"
+]);
 
+// Review flag headings (any heading style)
+const REVIEW_FLAG_HEADING_STYLES = new Set([
+  "HEADING_1","HEADING_2","HEADING_3","HEADING_4","HEADING_5","HEADING_6"
+]);
+
+/**
+ * List section headers → field names.
+ * "Highlights" is used in Switzerland day-trip tours instead of "You will see".
+ */
 const LIST_SECTION_PATTERNS = [
-  [/^inclusions?\s*:?\s*$/i,  "inclusions"],
-  [/^exclusions?\s*:?\s*$/i,  "exclusions"],
-  [/^additional\s+info/i,     "additionalInfo"],
-  [/^you\s+will\s+learn/i,    "youWillLearn"],
-  [/^you\s+will\s+see/i,      "youWillSee"],
+  [/^inclusions?\s*:?\s*$/i,      "inclusions"],
+  [/^exclusions?\s*:?\s*$/i,      "exclusions"],
+  [/^additional\s+info/i,         "additionalInfo"],
+  [/^you\s+will\s+learn/i,        "youWillLearn"],
+  [/^you\s+will\s+see/i,          "youWillSee"],
+  [/^highlights?\s*:?\s*$/i,      "youWillSee"],   // Switzerland day-trip variant
 ];
 
 const INLINE_FIELD_PATTERNS = [
@@ -171,17 +203,21 @@ function getBodyParagraphs(docJson) {
 function isTourTitle(paragraph) {
   if (paragraphStyle(paragraph) !== "HEADING_1") return false;
   const text = paragraphText(paragraph).trim();
-  return text.length > 0 && !SKIP_TITLE_RE.test(text);
+  return text.length > 0 && !SKIP_TITLE_RE.test(text) && !isReviewFlagText(text);
 }
 
 function isReviewFlagParagraph(paragraph) {
-  const text = paragraphText(paragraph).trim();
+  const text  = paragraphText(paragraph).trim();
   if (!text) return false;
-  // Review flags can appear as any heading style OR as plain normal paragraphs
   const style = paragraphStyle(paragraph);
-  const isHeading = REVIEW_STYLES.has(style);
-  const isNormal  = style === "NORMAL_TEXT";
-  return (isHeading || isNormal) && isReviewFlagText(text);
+
+  // Heading-style review flags
+  if (REVIEW_FLAG_HEADING_STYLES.has(style)) return isReviewFlagText(text);
+
+  // Normal paragraphs that are review flags (bold or not)
+  if (style === "NORMAL_TEXT") return isReviewFlagText(text);
+
+  return false;
 }
 
 function splitIntoSections(paragraphs) {
@@ -203,7 +239,22 @@ function splitIntoSections(paragraphs) {
 // Section parser
 // ---------------------------------------------------------------------------
 
+/**
+ * @typedef {Object} TourSection
+ * @property {string}   title
+ * @property {string}   description
+ * @property {string}   duration
+ * @property {string}   meetingPoint
+ * @property {string}   endLocation
+ * @property {string[]} inclusions
+ * @property {string[]} exclusions
+ * @property {string[]} additionalInfo
+ * @property {string[]} youWillLearn
+ * @property {string[]} youWillSee
+ */
+
 function parseSection(paragraphs) {
+  /** @type {TourSection} */
   const tour = {
     title: "", description: "",
     duration: "", meetingPoint: "", endLocation: "",
@@ -221,7 +272,11 @@ function parseSection(paragraphs) {
 
   const addToList = (fieldName, text) => {
     for (const line of splitSoftBreaks(text)) {
-      if (line && !isNoiseLine(line)) tour[fieldName].push(line);
+      // Skip long walk-narrative lines (> 300 chars) from list fields —
+      // these are itinerary prose that slipped into the wrong section
+      if (line && !isNoiseLine(line) && line.length <= 300) {
+        tour[fieldName].push(line);
+      }
     }
   };
 
@@ -229,17 +284,18 @@ function parseSection(paragraphs) {
     const text    = paragraphText(para).trim();
     const style   = paragraphStyle(para);
     const hasBold = paragraphHasBold(para);
+    const isHeadingLike = HEADING_LIKE_STYLES.has(style);
 
-    // Always skip empty lines (when inside a list field)
+    // Skip empty lines inside list sections
     if (!text && listField) continue;
 
-    // Review flags — skip regardless of paragraph style
+    // Review flags — skip regardless of style
     if (isReviewFlagParagraph(para)) { listField = null; inDesc = true; continue; }
 
-    // Noise lines — skip everywhere (price, sources label, "Changed to X")
+    // Noise lines — skip everywhere
     if (isNoiseLine(text)) continue;
 
-    // Separator lines (dashes or underscores) — mark end of content
+    // Separator lines (dashes or underscores) — end of content
     if (isSeparator(text)) { listField = null; inDesc = false; continue; }
 
     // Multi-field paragraph (Meeting point / Duration / End location packed together)
@@ -252,22 +308,29 @@ function parseSection(paragraphs) {
       continue;
     }
 
-    // Bold / heading labels
-    if (hasBold || style.startsWith("HEADING_")) {
+    // Bold / heading-like labels (includes TITLE style)
+    // Match against the FIRST LINE only — some paragraphs pack label + items
+    // with embedded \n, e.g. "Highlights:\nAbbey of St. Gallen"
+    const firstLine = text.split("\n")[0].trim();
+    const restLines = text.split("\n").slice(1).join("\n").trim();
+
+    if (hasBold || isHeadingLike) {
       // List section headers
-      const listMatch = LIST_SECTION_PATTERNS.find(([re]) => re.test(text));
+      const listMatch = LIST_SECTION_PATTERNS.find(([re]) => re.test(firstLine));
       if (listMatch) {
         listField = listMatch[1];
         inDesc    = false;
+        // Add any items packed after the label on the same paragraph
+        if (restLines) addToList(listField, restLines);
         continue;
       }
 
       // Inline field labels
-      const inlineMatch = INLINE_FIELD_PATTERNS.find(([re]) => re.test(text));
+      const inlineMatch = INLINE_FIELD_PATTERNS.find(([re]) => re.test(firstLine));
       if (inlineMatch) {
         const [pattern, fieldName] = inlineMatch;
-        tour[fieldName] = text.replace(pattern, "").replace(/^[\s:]+/, "").trim()
-                       || text.split(/:\s*/)[1]?.trim()
+        tour[fieldName] = firstLine.replace(pattern, "").replace(/^[\s:]+/, "").trim()
+                       || firstLine.split(/:\s*/)[1]?.trim()
                        || "";
         inDesc = false; listField = null;
         continue;
@@ -277,7 +340,7 @@ function parseSection(paragraphs) {
     // Accumulate into active list field
     if (listField) { if (text) addToList(listField, text); continue; }
 
-    // Description — but skip review flag text even if not caught by heading check
+    // Description — skip review flag text and noise even as plain paragraphs
     if (inDesc) {
       if (text && !isReviewFlagText(text) && !isNoiseLine(text)) {
         descLines.push(text);
