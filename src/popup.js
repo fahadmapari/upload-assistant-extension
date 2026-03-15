@@ -18,7 +18,7 @@ const $ = (id) => document.getElementById(id);
 
 // ── Dummy data (used for fields not yet coming from sheet) ─
 const DUMMY = {
-  tourType: "Private",
+
   activityType: "City Tours",
   subType: "Walking Tours",
   description:
@@ -47,8 +47,7 @@ const DUMMY = {
   pickupInstructions: "",
   endPoint: "Roman Forum exit",
   tags: "Walk",
-  priceModel: "Fixed Rate",
-  currency: "EUR",
+
   extraHour: "30",
   extraHourB2C: "25",
   extraHourRequest: "28",
@@ -614,7 +613,7 @@ const FILL_FIELDS = [
   { key: "releaseRequest", label: "Cut Off (On Request)", source: "sheet" },
   // Below: still using dummy data until doc parsing is implemented
   { key: "description", label: "Description (Quill)", source: "dummy" },
-  { key: "tourType", label: "Tour Type", source: "dummy" },
+
   { key: "activityType", label: "Activity Type", source: "dummy" },
   { key: "subType", label: "Sub Type", source: "dummy" },
   { key: "willSee", label: "You Will See", source: "dummy" },
@@ -642,8 +641,7 @@ const FILL_FIELDS = [
   { key: "pickupInstructions", label: "Pickup Instructions", source: "dummy" },
   { key: "endPoint", label: "End Point", source: "dummy" },
   { key: "tags", label: "Tags", source: "dummy" },
-  { key: "priceModel", label: "Price Model", source: "dummy" },
-  { key: "currency", label: "Currency", source: "dummy" },
+
   { key: "extraHour", label: "Extra Hour (Instant)", source: "dummy" },
   { key: "extraHourB2C", label: "Extra Hour B2C", source: "dummy" },
   { key: "extraHourRequest", label: "Extra Hour (Request)", source: "dummy" },
@@ -1239,7 +1237,7 @@ function injectTourData(tour) {
     // ng-selects (sequential) — cascading: serviceType → activityType → subType
     await fillNgSelect("serviceType", tour.serviceType);
     await sleep(900); // wait for activityType options to cascade-load
-    await fillNgSelect("tourType", tour.tourType);
+
     await fillNgSelect("activityType", tour.activityType);
     await sleep(900); // wait for subType options to cascade-load
     await fillNgSelect("subType", tour.subType);
@@ -1247,8 +1245,7 @@ function injectTourData(tour) {
     await fillNgSelect("voucherType", tour.voucherType);
     await fillNgSelect("countryId", tour.country);
     await fillNgSelect("cityId", tour.city);
-    await fillNgSelect("isFixedModel", tour.priceModel);
-    await fillNgSelect("currency", tour.currency);
+
     await fillNgSelect("tourGuideLanguageList", tour.guideLanguageInstant);
     await fillNgSelectMultiple("tourGuideLanguageList_request", tour.guideLanguageRequest);
     await fillNgSelect("tagsList", tour.tags);
