@@ -25,6 +25,16 @@ function paragraphElements(paragraph) {
   });
 }
 
+/**
+ * Detect a plain-text coordinate pair like "47.049700, 8.309496".
+ * Returns { latitude, longitude } strings or null.
+ */
+function coordsFromText(text) {
+  const m = text.trim().match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+  if (!m) return null;
+  return { longitude: m[1], latitude: m[2] };
+}
+
 function paragraphText(paragraph) {
   return paragraphElements(paragraph).map(e => e.text).join("").replace(/\n$/, "");
 }
@@ -122,6 +132,8 @@ const INLINE_FIELD_PATTERNS = [
   [/^meeting\s+point\s*:/i,   "meetingPoint"],
   [/^duration\s*:/i,           "duration"],
   [/^end\s+loc(ation)?\s*:/i,  "endLocation"],
+  [/^longitude\s*:/i,          "longitude"],
+  [/^latitude\s*:/i,           "latitude"],
 ];
 
 // ---------------------------------------------------------------------------
@@ -246,6 +258,8 @@ function splitIntoSections(paragraphs) {
  * @property {string}   duration
  * @property {string}   meetingPoint
  * @property {string}   endLocation
+ * @property {string}   longitude
+ * @property {string}   latitude
  * @property {string[]} inclusions
  * @property {string[]} exclusions
  * @property {string[]} additionalInfo
@@ -258,6 +272,7 @@ function parseSection(paragraphs) {
   const tour = {
     title: "", description: "",
     duration: "", meetingPoint: "", endLocation: "",
+    longitude: "", latitude: "",
     inclusions: [], exclusions: [], additionalInfo: [],
     youWillLearn: [], youWillSee: [],
   };
@@ -297,6 +312,16 @@ function parseSection(paragraphs) {
 
     // Separator lines (dashes or underscores) — end of content
     if (isSeparator(text)) { listField = null; inDesc = false; continue; }
+
+    // Plain-text coordinate pair e.g. "47.049700, 8.309496"
+    if (!tour.latitude && !tour.longitude) {
+      const coords = coordsFromText(text);
+      if (coords) {
+        tour.latitude  = coords.latitude;
+        tour.longitude = coords.longitude;
+        continue;
+      }
+    }
 
     // Multi-field paragraph (Meeting point / Duration / End location packed together)
     const multiFields = parseMultiFieldParagraph(para);

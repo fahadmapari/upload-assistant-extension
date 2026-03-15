@@ -9,7 +9,7 @@ let currentDocTour = null; // parsed tour data from Google Doc
 const DOC_FIELDS = new Set([
   "description", "willSee", "willLearn",
   "included", "notIncluded", "mandatoryInfo",
-  "meetingPoint", "endPoint",
+  "meetingPoint", "endPoint", "longitude", "latitude",
 ]);
 
 const $ = (id) => document.getElementById(id);
@@ -85,6 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ["colCancellationRequest", ""],
       ["colRelease", ""],
       ["colReleaseRequest", ""],
+      ["colMaxPax", ""],
     ];
     cols.forEach(([id, fallback]) => {
       const el = $(id);
@@ -122,6 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "colCancellationRequest",
     "colRelease",
     "colReleaseRequest",
+    "colMaxPax",
   ].forEach((id) => {
     const el = $(id);
     if (el) el.addEventListener("input", autoSaveConfig);
@@ -187,6 +189,7 @@ function buildConfig() {
     colCancellationRequest: col("colCancellationRequest"),
     colRelease: col("colRelease"),
     colReleaseRequest: col("colReleaseRequest"),
+    colMaxPax: col("colMaxPax"),
   };
 }
 
@@ -421,6 +424,19 @@ function buildTour(headers, row, rowNum, titleHyperlink = "") {
   // Prefer the hyperlink embedded in the title cell; fall back to a plain-text docUrl column
   const docUrl = titleHyperlink || col("colDocUrl");
 
+  const serviceType = col("colServiceType");
+
+  // Parse maxPax: "1-15" → "15", plain number → use as-is,
+  // empty → 7 for Day Trip, 15 otherwise
+  const rawMaxPax = col("colMaxPax");
+  let maxPax;
+  if (rawMaxPax) {
+    const dashMatch = rawMaxPax.match(/-(\d+)/);
+    maxPax = dashMatch ? dashMatch[1] : rawMaxPax;
+  } else {
+    maxPax = /day.?trip/i.test(serviceType) ? "7" : "15";
+  }
+
   return {
     rowNum,
     title: col("colTitle"),
@@ -428,7 +444,7 @@ function buildTour(headers, row, rowNum, titleHyperlink = "") {
     country: col("colCountry"),
     city: col("colCity"),
     duration: col("colDuration"),
-    serviceType: col("colServiceType"),
+    serviceType,
     rate: col("colRate"),
     rateRequest: col("colRateRequest"),
     rateB2C: col("colRateB2C"),
@@ -437,6 +453,7 @@ function buildTour(headers, row, rowNum, titleHyperlink = "") {
     cancellationRequest: col("colCancellationRequest"),
     release: col("colRelease"),
     releaseRequest: col("colReleaseRequest"),
+    maxPax,
   };
 }
 
@@ -608,7 +625,7 @@ const FILL_FIELDS = [
   { key: "notIncluded", label: "Not Included", source: "dummy" },
   { key: "activityFor", label: "Activity For", source: "dummy" },
   { key: "voucherType", label: "Voucher Type", source: "dummy" },
-  { key: "noOfPax", label: "No of Pax", source: "dummy" },
+  { key: "noOfPax", label: "No of Pax", source: "sheet" },
   {
     key: "guideLanguageInstant",
     label: "Guide Language (Instant)",
@@ -619,8 +636,8 @@ const FILL_FIELDS = [
     label: "Guide Language (Request)",
     source: "dummy",
   },
-  { key: "longitude", label: "Longitude", source: "dummy" },
-  { key: "latitude", label: "Latitude", source: "dummy" },
+  { key: "longitude", label: "Longitude", source: "doc" },
+  { key: "latitude", label: "Latitude", source: "doc" },
   { key: "meetingPoint", label: "Meeting Point", source: "dummy" },
   { key: "pickupInstructions", label: "Pickup Instructions", source: "dummy" },
   { key: "endPoint", label: "End Point", source: "dummy" },
@@ -665,6 +682,8 @@ function mergeDocData(fillData) {
   if (d.additionalInfo?.length) fillData.mandatoryInfo = d.additionalInfo[0] || "";
   if (d.meetingPoint)       fillData.meetingPoint  = d.meetingPoint;
   if (d.endLocation)        fillData.endPoint      = d.endLocation;
+  if (d.longitude)          fillData.longitude     = d.longitude;
+  if (d.latitude)           fillData.latitude      = d.latitude;
 }
 
 async function goToFillPanel(tour) {
@@ -683,6 +702,7 @@ async function goToFillPanel(tour) {
       title: tour.title,
       serviceType: "Guide",
       subType: tour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
+      noOfPax: tour.maxPax,
       country: tour.country || DUMMY.country,
       city: tour.city || DUMMY.city,
       duration: tour.duration || DUMMY.duration,
@@ -808,6 +828,7 @@ async function startFill() {
     title: selectedTour.title,
     serviceType: "Guide",
     subType: selectedTour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
+    noOfPax: selectedTour.maxPax,
     country: selectedTour.country || DUMMY.country,
     city: selectedTour.city || DUMMY.city,
     duration: selectedTour.duration || DUMMY.duration,
