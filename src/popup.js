@@ -614,14 +614,8 @@ const FILL_FIELDS = [
   { key: "rateRequest", label: "B2B Price (On Request)", source: "sheet" },
   { key: "rateB2C", label: "B2C Price (Instant)", source: "sheet" },
   { key: "rateRequestB2C", label: "B2C Price (On Request)", source: "sheet" },
-  { key: "cancellation", label: "Cancellation (Instant)", source: "sheet" },
-  {
-    key: "cancellationRequest",
-    label: "Cancellation (On Request)",
-    source: "sheet",
-  },
-  { key: "release", label: "Cut Off (Instant)", source: "sheet" },
-  { key: "releaseRequest", label: "Cut Off (On Request)", source: "sheet" },
+  { key: "cancellation", label: "Cancellation", source: "sheet" },
+  { key: "release", label: "Cut Off", source: "sheet" },
   { key: "description", label: "Description (Quill)", source: "doc" },
 
   { key: "activityType", label: "Activity Type", source: "default" },
@@ -712,10 +706,8 @@ async function goToFillPanel(tour) {
       rateRequest: tour.rateRequest || DEFAULT.rateRequest,
       rateB2C: tour.rateB2C || DEFAULT.rateB2C,
       rateRequestB2C: tour.rateRequestB2C || DEFAULT.rateRequestB2C,
-      cancellation: tour.cancellation || DEFAULT.cancellation,
-      cancellationRequest: tour.cancellationRequest || null,
-      release: tour.release || DEFAULT.release,
-      releaseRequest: tour.releaseRequest || null,
+      cancellation: tour.cancellationRequest || tour.cancellation || DEFAULT.cancellation,
+      release: tour.releaseRequest || tour.release || DEFAULT.release,
       extraHour: tour.extraHour || null,
       extraHourB2C: tour.extraHourB2C || null,
       extraHourRequest: tour.extraHourRequest || null,
@@ -842,10 +834,8 @@ async function startFill() {
     rateRequest: selectedTour.rateRequest || DEFAULT.rateRequest,
     rateB2C: selectedTour.rateB2C || DEFAULT.rateB2C,
     rateRequestB2C: selectedTour.rateRequestB2C || DEFAULT.rateRequestB2C,
-    cancellation: selectedTour.cancellation || DEFAULT.cancellation,
-    cancellationRequest: selectedTour.cancellationRequest || null,
-    release: selectedTour.release || DEFAULT.release,
-    releaseRequest: selectedTour.releaseRequest || null,
+    cancellation: selectedTour.cancellationRequest || selectedTour.cancellation || DEFAULT.cancellation,
+    release: selectedTour.releaseRequest || selectedTour.release || DEFAULT.release,
     extraHour: selectedTour.extraHour || null,
     extraHourB2C: selectedTour.extraHourB2C || null,
     extraHourRequest: selectedTour.extraHourRequest || null,
@@ -1231,9 +1221,7 @@ function injectTourData(tour) {
     await fillByControl("endTime", tour.endTime);
     // Cancellation & cut off — two separate fields for instant vs on-request
     await fillByControl("cancellation", tour.cancellation);
-    await fillByControl("cancellation_request", tour.cancellationRequest);
     await fillByControl("release", tour.release);
-    await fillByControl("release_request", tour.releaseRequest);
 
     // Quill
     fillQuill(tour.description);
