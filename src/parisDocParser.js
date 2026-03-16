@@ -73,6 +73,7 @@ function isNoiseLine(text) {
   return (
     /^price\s+is\s+missing:?\s*$/i.test(t)          ||
     /^sources?\s*:?\s*$/i.test(t)                    ||
+    /^notes?\s*:?\s*$/i.test(t)                      ||
     /^changed\s+to\s+.+$/i.test(t)                   ||
     /^BOKUN\s*$/i.test(t)                             ||
     /^(VIATOR|EXPEDIA|KLOOK)/i.test(t)               ||
@@ -363,7 +364,7 @@ function parseSection(paragraphs) {
     }
 
     // Accumulate into active list field
-    if (listField) { if (text) addToList(listField, text); continue; }
+    if (listField) { if (text && !isNoiseLine(text)) addToList(listField, text); continue; }
 
     // Description — skip review flag text and noise even as plain paragraphs
     if (inDesc) {

@@ -50,8 +50,6 @@ const DUMMY = {
   weekendSupplement: "10",
   startTime: "09:00",
   endTime: "13:00",
-  isB2CEnabled: "true",
-  isB2BEnabled: "true",
 };
 
 // ── Init ───────────────────────────────────────────────
@@ -654,8 +652,6 @@ const FILL_FIELDS = [
   { key: "weekendSupplement", label: "Weekend Supplement %", source: "dummy" },
   { key: "startTime", label: "Start Time", source: "dummy" },
   { key: "endTime", label: "End Time", source: "dummy" },
-  { key: "isB2CEnabled", label: "B2C Enabled", source: "dummy" },
-  { key: "isB2BEnabled", label: "B2B Enabled", source: "dummy" },
 ];
 
 // ── Doc tour matching ───────────────────────────────────
@@ -1009,8 +1005,7 @@ function injectTourData(tour) {
   async function fillByControl(controlName, value) {
     if (!value && value !== 0) return;
     const el = document.querySelector(`[formcontrolname="${controlName}"]`);
-    if (!el || el.disabled || el.getAttribute("readonly") === "readonly")
-      return;
+    if (!el || el.disabled || el.getAttribute("readonly") === "readonly") return;
     await ensurePanelOpen(el);
     const tag = el.tagName.toLowerCase();
     if (tag === "input" || tag === "textarea") {
@@ -1178,18 +1173,16 @@ function injectTourData(tour) {
     }
   }
 
-  function setCheckbox(controlName, value) {
-    if (!value) return;
-    const el = document.querySelector(`[formcontrolname="${controlName}"]`);
-    if (!el) return;
-    const shouldCheck = ["true", "yes", "1"].includes(
-      String(value).toLowerCase(),
-    );
-    if (el.checked !== shouldCheck) el.click();
-    filled.push(controlName);
-  }
-
   async function runFill() {
+    // Expand all collapsed mat-expansion-panels so Angular renders their content into the DOM.
+    // fillByControl uses querySelector which returns null for elements inside collapsed panels
+    // (Angular lazy-renders panel content — it doesn't exist in the DOM until first opened).
+    const collapsedHeaders = document.querySelectorAll(
+      'mat-expansion-panel-header[aria-expanded="false"]'
+    );
+    collapsedHeaders.forEach((h) => h.click());
+    if (collapsedHeaders.length > 0) await sleep(800);
+
     // Text / number inputs
     await fillByControl("tourTitle", tour.title);
     await fillByControl("descriptionWillSee", tour.willSee);
@@ -1229,10 +1222,6 @@ function injectTourData(tour) {
 
     // Quill
     fillQuill(tour.description);
-
-    // Checkboxes
-    setCheckbox("isB2CEnabled", tour.isB2CEnabled);
-    setCheckbox("isB2BEnabled", tour.isB2BEnabled);
 
     // ng-selects (sequential) — cascading: serviceType → activityType → subType
     await fillNgSelect("serviceType", tour.serviceType);
