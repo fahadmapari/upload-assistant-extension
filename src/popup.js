@@ -5,7 +5,7 @@ let selectedTour = null;
 let filteredTours = [];
 let currentDocTour = null; // parsed tour data from Google Doc
 
-// Fields populated from the Google Doc (not sheet or dummy)
+// Fields populated from the Google Doc (not sheet or default)
 const DOC_FIELDS = new Set([
   "description", "willSee", "willLearn",
   "included", "notIncluded", "mandatoryInfo",
@@ -16,8 +16,8 @@ const $ = (id) => document.getElementById(id);
 
 // Column letters are configured explicitly in the setup panel — no auto-detection.
 
-// ── Dummy data (used for fields not yet coming from sheet) ─
-const DUMMY = {
+// ── Default data (used for fields not yet coming from sheet) ─
+const DEFAULT = {
 
   activityType: "City Tours",
   subType: "Walking Tours",
@@ -624,42 +624,42 @@ const FILL_FIELDS = [
   { key: "releaseRequest", label: "Cut Off (On Request)", source: "sheet" },
   { key: "description", label: "Description (Quill)", source: "doc" },
 
-  { key: "activityType", label: "Activity Type", source: "dummy" },
-  { key: "subType", label: "Sub Type", source: "dummy" },
+  { key: "activityType", label: "Activity Type", source: "default" },
+  { key: "subType", label: "Sub Type", source: "default" },
   { key: "willSee", label: "You Will See", source: "doc" },
   { key: "willLearn", label: "You Will Learn", source: "doc" },
-  { key: "mandatoryInfo", label: "Mandatory Information", source: "dummy" },
-  { key: "recommendedInfo", label: "Recommended Information", source: "dummy" },
+  { key: "mandatoryInfo", label: "Mandatory Information", source: "default" },
+  { key: "recommendedInfo", label: "Recommended Information", source: "default" },
   { key: "included", label: "Included", source: "doc" },
   { key: "notIncluded", label: "Not Included", source: "doc" },
-  { key: "activityFor", label: "Activity For", source: "dummy" },
-  { key: "voucherType", label: "Voucher Type", source: "dummy" },
+  { key: "activityFor", label: "Activity For", source: "default" },
+  { key: "voucherType", label: "Voucher Type", source: "default" },
   { key: "noOfPax", label: "No of Pax", source: "sheet" },
   {
     key: "guideLanguageInstant",
     label: "Guide Language (Instant)",
-    source: "dummy",
+    source: "default",
   },
   {
     key: "guideLanguageRequest",
     label: "Guide Language (Request)",
-    source: "dummy",
+    source: "default",
   },
   { key: "longitude", label: "Longitude", source: "doc" },
   { key: "latitude", label: "Latitude", source: "doc" },
-  { key: "meetingPoint", label: "Meeting Point", source: "dummy" },
-  { key: "pickupInstructions", label: "Pickup Instructions", source: "dummy" },
-  { key: "endPoint", label: "End Point", source: "dummy" },
-  { key: "tags", label: "Tags", source: "dummy" },
+  { key: "meetingPoint", label: "Meeting Point", source: "default" },
+  { key: "pickupInstructions", label: "Pickup Instructions", source: "default" },
+  { key: "endPoint", label: "End Point", source: "default" },
+  { key: "tags", label: "Tags", source: "default" },
 
   { key: "extraHour", label: "Extra Hour Supplement (Instant)", source: "sheet" },
   { key: "extraHourB2C", label: "Extra Hour Supplement B2C (Instant)", source: "sheet" },
   { key: "extraHourRequest", label: "Extra Hour Supplement (On Request)", source: "sheet" },
   { key: "extraHourRequestB2C", label: "Extra Hour Supplement B2C (On Request)", source: "sheet" },
-  { key: "holidaySupplement", label: "Holiday Supplement %", source: "dummy" },
-  { key: "weekendSupplement", label: "Weekend Supplement %", source: "dummy" },
-  { key: "startTime", label: "Start Time", source: "dummy" },
-  { key: "endTime", label: "End Time", source: "dummy" },
+  { key: "holidaySupplement", label: "Holiday Supplement %", source: "default" },
+  { key: "weekendSupplement", label: "Weekend Supplement %", source: "default" },
+  { key: "startTime", label: "Start Time", source: "default" },
+  { key: "endTime", label: "End Time", source: "default" },
 ];
 
 // ── Doc tour matching ───────────────────────────────────
@@ -700,21 +700,21 @@ async function goToFillPanel(tour) {
 
   function buildFillData() {
     const data = {
-      ...DUMMY,
+      ...DEFAULT,
       title: tour.title,
       serviceType: "Guide",
       subType: tour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
       noOfPax: tour.maxPax,
-      country: tour.country || DUMMY.country,
-      city: tour.city || DUMMY.city,
+      country: tour.country || DEFAULT.country,
+      city: tour.city || DEFAULT.city,
       duration: tour.duration || currentDocTour?.duration || "",
-      rate: tour.rate || DUMMY.rate,
-      rateRequest: tour.rateRequest || DUMMY.rateRequest,
-      rateB2C: tour.rateB2C || DUMMY.rateB2C,
-      rateRequestB2C: tour.rateRequestB2C || DUMMY.rateRequestB2C,
-      cancellation: tour.cancellation || DUMMY.cancellation,
+      rate: tour.rate || DEFAULT.rate,
+      rateRequest: tour.rateRequest || DEFAULT.rateRequest,
+      rateB2C: tour.rateB2C || DEFAULT.rateB2C,
+      rateRequestB2C: tour.rateRequestB2C || DEFAULT.rateRequestB2C,
+      cancellation: tour.cancellation || DEFAULT.cancellation,
       cancellationRequest: tour.cancellationRequest || null,
-      release: tour.release || DUMMY.release,
+      release: tour.release || DEFAULT.release,
       releaseRequest: tour.releaseRequest || null,
       extraHour: tour.extraHour || null,
       extraHourB2C: tour.extraHourB2C || null,
@@ -754,7 +754,7 @@ async function goToFillPanel(tour) {
           : (val != null && val !== "" ? String(val) : "—");
         const src = f.source === "sheet"
           ? "sheet"
-          : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "dummy");
+          : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "default");
         const valColor = src === "sheet" ? "var(--text-dim)" : src === "doc" ? "#a5b4fc" : "var(--muted-fg)";
         const srcColor = src === "sheet" ? "var(--success)" : src === "doc" ? "#818cf8" : "var(--muted)";
         return `<tr>
@@ -768,7 +768,7 @@ async function goToFillPanel(tour) {
     $("fieldsChecklist").innerHTML = FILL_FIELDS.map((f) => {
       const src = f.source === "sheet"
         ? "sheet"
-        : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "dummy");
+        : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "default");
       const srcColor = src === "sheet" ? "var(--success)" : src === "doc" ? "#818cf8" : "var(--muted)";
       return `<div class="check-item" id="check-${f.key}">
         <div class="check-dot"></div>
@@ -778,7 +778,7 @@ async function goToFillPanel(tour) {
     }).join("");
   }
 
-  // Show the panel immediately with dummy/sheet data while doc loads
+  // Show the panel immediately with default/sheet data while doc loads
   renderPreview(buildFillData(), tour.docUrl ? { text: "fetching doc…", color: "var(--warning)" } : null);
   showPanel("panelFill");
   $("startFillBtn").disabled = true;
@@ -795,7 +795,7 @@ async function goToFillPanel(tour) {
           renderPreview(buildFillData(), { text: "✓ doc parsed", color: "var(--success)" });
         } else {
           renderPreview(buildFillData(), { text: "title not found in doc", color: "var(--warning)" });
-          showToast("Tour title not found in doc — using dummy data for doc fields", "info");
+          showToast("Tour title not found in doc — using default data for doc fields", "info");
         }
       }
     } catch (e) {
@@ -828,23 +828,23 @@ async function startFill() {
   const _endHour = Math.max(0, 22 - _durHours);
   const _endTime = `${String(_endHour).padStart(2, "0")}:00`;
 
-  // Merge: dummy base → overridden by real sheet values where available
+  // Merge: default base → overridden by real sheet values where available
   const fillData = {
-    ...DUMMY,
+    ...DEFAULT,
     title: selectedTour.title,
     serviceType: "Guide",
     subType: selectedTour.serviceType === "Driver-Guide" ? "Driver Guide" : "Walking Tours",
     noOfPax: selectedTour.maxPax,
-    country: selectedTour.country || DUMMY.country,
-    city: selectedTour.city || DUMMY.city,
+    country: selectedTour.country || DEFAULT.country,
+    city: selectedTour.city || DEFAULT.city,
     duration: selectedTour.duration || currentDocTour?.duration || "",
-    rate: selectedTour.rate || DUMMY.rate,
-    rateRequest: selectedTour.rateRequest || DUMMY.rateRequest,
-    rateB2C: selectedTour.rateB2C || DUMMY.rateB2C,
-    rateRequestB2C: selectedTour.rateRequestB2C || DUMMY.rateRequestB2C,
-    cancellation: selectedTour.cancellation || DUMMY.cancellation,
+    rate: selectedTour.rate || DEFAULT.rate,
+    rateRequest: selectedTour.rateRequest || DEFAULT.rateRequest,
+    rateB2C: selectedTour.rateB2C || DEFAULT.rateB2C,
+    rateRequestB2C: selectedTour.rateRequestB2C || DEFAULT.rateRequestB2C,
+    cancellation: selectedTour.cancellation || DEFAULT.cancellation,
     cancellationRequest: selectedTour.cancellationRequest || null,
-    release: selectedTour.release || DUMMY.release,
+    release: selectedTour.release || DEFAULT.release,
     releaseRequest: selectedTour.releaseRequest || null,
     extraHour: selectedTour.extraHour || null,
     extraHourB2C: selectedTour.extraHourB2C || null,
@@ -856,7 +856,7 @@ async function startFill() {
     endTime: _endTime,
   };
 
-  // Override dummy doc fields with parsed Google Doc data if available
+  // Override default doc fields with parsed Google Doc data if available
   mergeDocData(fillData);
 
   try {
