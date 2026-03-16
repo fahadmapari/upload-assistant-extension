@@ -42,8 +42,6 @@ const DEFAULT = {
   endPoint: "Roman Forum exit",
   tags: "Walk",
 
-  holidaySupplement: "15",
-  weekendSupplement: "10",
   startTime: "09:00",
   endTime: "13:00",
 };
@@ -650,8 +648,6 @@ const FILL_FIELDS = [
   { key: "extraHourB2C", label: "Extra Hour Supplement B2C (Instant)", source: "sheet" },
   { key: "extraHourRequest", label: "Extra Hour Supplement (On Request)", source: "sheet" },
   { key: "extraHourRequestB2C", label: "Extra Hour Supplement B2C (On Request)", source: "sheet" },
-  { key: "holidaySupplement", label: "Holiday Supplement %", source: "default" },
-  { key: "weekendSupplement", label: "Weekend Supplement %", source: "default" },
   { key: "startTime", label: "Start Time", source: "default" },
   { key: "endTime", label: "End Time", source: "default" },
 ];
@@ -1212,8 +1208,6 @@ function injectTourData(tour) {
     await fillByControl("extraHourChargesB2C", tour.extraHourB2C);
     await fillByControl("extraHourCharges_request", tour.extraHourRequest);
     await fillByControl("extraHourCharges_requestB2C", tour.extraHourRequestB2C);
-    await fillByControl("publicHolidaySurchargePercentage", tour.holidaySupplement);
-    await fillByControl("weekendSupplementPercentage", tour.weekendSupplement);
     // Schedule
     await fillNgbDatepicker("startDate", tour.startDate);
     await fillNgbDatepicker("endDate", tour.endDate);
