@@ -80,7 +80,8 @@ function isNoiseLine(text) {
     /^(VIATOR|EXPEDIA|KLOOK)/i.test(t)               ||
     /^SS\s+note\s*:/i.test(t)                        ||
     /https?:\/\//i.test(t)                            ||
-    /^www\./i.test(t)
+    /^www\./i.test(t)                            ||
+    /^cancel\s+up\s+to\s+.+refund/i.test(t)
   );
 }
 
