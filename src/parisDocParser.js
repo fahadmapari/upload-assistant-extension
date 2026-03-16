@@ -66,7 +66,8 @@ function splitSoftBreaks(text) {
 /**
  * Pure editorial noise — never belongs in any content field.
  * Covers: "Price is missing", "Sources:", "Changed to …", "BOKUN",
- * "VIATOR / EXPEDIA / KLOOK …", "SS note: …", platform distribution lists.
+ * "VIATOR / EXPEDIA / KLOOK …", "SS note: …", platform distribution lists,
+ * and any URL/link text.
  */
 function isNoiseLine(text) {
   const t = text.replace(/\u00a0/g, " ").trim();
@@ -77,7 +78,9 @@ function isNoiseLine(text) {
     /^changed\s+to\s+.+$/i.test(t)                   ||
     /^BOKUN\s*$/i.test(t)                             ||
     /^(VIATOR|EXPEDIA|KLOOK)/i.test(t)               ||
-    /^SS\s+note\s*:/i.test(t)
+    /^SS\s+note\s*:/i.test(t)                        ||
+    /https?:\/\//i.test(t)                            ||
+    /^www\./i.test(t)
   );
 }
 
