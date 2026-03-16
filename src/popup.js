@@ -405,11 +405,21 @@ function loadCachedTours() {
   );
 }
 
+// ── Skeleton loader ────────────────────────────────────
+function showSkeletonLoader(count = 6) {
+  const container = $("tourList");
+  container.onscroll = null;
+  container.innerHTML = Array.from({ length: count }, () => `
+    <div class="skeleton-card">
+      <div class="skeleton-line skeleton-title"></div>
+      <div class="skeleton-line skeleton-meta"></div>
+    </div>`).join("");
+}
+
 // ── Google Sheets fetch ────────────────────────────────
 // Fetches all columns, maps by header name using COLUMN_MAP
 async function loadTours(forceFresh = false) {
   setStatus("busy");
-  renderTourList([]);
 
   if (!forceFresh) {
     const cached = await loadCachedTours();
@@ -424,7 +434,11 @@ async function loadTours(forceFresh = false) {
     }
   }
 
-  $("tourCountLabel").textContent = "Fetching from Google Sheets…";
+  showSkeletonLoader();
+  $("tourCountLabel").innerHTML =
+    `<span style="display:inline-flex;align-items:center;gap:5px">` +
+    `<span style="display:inline-block;width:9px;height:9px;border:1.5px solid var(--border-light);border-top-color:var(--muted-fg);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0"></span>` +
+    `Fetching from Google Sheets…</span>`;
 
   try {
     const range = `'${config.sheetTab}'`; // no column bounds — fetch entire sheet

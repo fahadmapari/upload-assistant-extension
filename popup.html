@@ -633,6 +633,32 @@
         }
       }
 
+      /* ── Skeleton loader ── */
+      @keyframes shimmer {
+        0%   { background-position: -400px 0; }
+        100% { background-position:  400px 0; }
+      }
+      .skeleton-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 12px;
+        flex-shrink: 0;
+      }
+      .skeleton-line {
+        border-radius: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--surface2) 25%,
+          var(--border) 50%,
+          var(--surface2) 75%
+        );
+        background-size: 800px 100%;
+        animation: shimmer 1.4s ease-in-out infinite;
+      }
+      .skeleton-title { height: 11px; width: 65%; margin-bottom: 7px; }
+      .skeleton-meta  { height: 9px;  width: 40%; }
+
       /* ── Config status bar ── */
       .config-bar {
         padding: 5px 16px;
