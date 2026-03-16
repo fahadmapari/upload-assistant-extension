@@ -133,21 +133,29 @@
    * Refreshes token on success; clears storage on failure so next popup shows gate.
    * Returns nothing — fire-and-forget.
    */
+  /**
+   * Silently re-verify an expired license.
+   * Returns true (still valid), false (revoked), or null (network error).
+   * On true: refreshes the stored token.
+   * On false: clears storage so the next popup open shows the gate.
+   * On null: leaves storage untouched (don't lock out offline users).
+   */
   async function silentReVerify(licenseKey) {
     const key = (licenseKey || "").trim().toUpperCase();
-    if (!key) { await clearRecord(); return; }
+    if (!key) { await clearRecord(); return false; }
 
     const valid = await verifyWithServer(key);
     if (valid === null) {
-      // Network failure — keep the record so the user isn't locked out offline
-      return;
+      return null; // network error — caller decides what to do
     }
     if (valid) {
       const verifiedAt = Date.now();
       const sig = await computeHmac(key, String(verifiedAt));
       await writeRecord({ key, verifiedAt, sig });
+      return true;
     } else {
       await clearRecord();
+      return false;
     }
   }
 

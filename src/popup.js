@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const result = await window.LicenseManager.activateLicense(key);
       if (result.ok) {
-        chrome.runtime.sendMessage({ type: "LICENSE_ACTIVATED" });
+        chrome.runtime.sendMessage({ type: "LICENSE_ACTIVATED" }, () => void chrome.runtime.lastError);
         licGate.classList.add("hidden");
         initApp();
       } else {
@@ -102,12 +102,36 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (licResult.licensed) {
     licGate.classList.add("hidden");
     initApp();
-  } else {
-    if (licResult.reason === "expired") {
-      window.LicenseManager.silentReVerify(licResult.key).catch(() => {});
+  } else if (licResult.reason === "expired") {
+    // Show a checking state — don't force key re-entry until we know the key is actually invalid
+    licBtn.disabled = true;
+    licInput.disabled = true;
+    licBtn.innerHTML = '<span class="license-spinner"></span> Checking license…';
+
+    try {
+      const reVerifyResult = await window.LicenseManager.silentReVerify(licResult.key);
+      if (reVerifyResult === true) {
+        // Key is still valid — schedule next alarm and go straight to the app
+        chrome.runtime.sendMessage({ type: "LICENSE_ACTIVATED" }, () => void chrome.runtime.lastError);
+        licGate.classList.add("hidden");
+        initApp();
+      } else {
+        // false = revoked, null = network error — show the gate
+        licBtn.disabled = false;
+        licInput.disabled = false;
+        licBtn.textContent = "Activate";
+        if (reVerifyResult === false) {
+          licError.textContent = "Your license key is no longer valid. Please enter a new key.";
+        }
+        // null (offline): gate shows with empty error — user can try entering the key
+      }
+    } catch {
+      licBtn.disabled = false;
+      licInput.disabled = false;
+      licBtn.textContent = "Activate";
     }
-    // Gate stays visible (shown by default in HTML), nothing else to do
   }
+  // reason: no_record | corrupt | tampered → gate stays visible as-is
 });
 
 async function initApp() {
