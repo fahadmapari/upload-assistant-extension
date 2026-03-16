@@ -46,68 +46,68 @@ const DEFAULT = {
   endTime: "13:00",
 };
 
-// ── License Gate ───────────────────────────────────────
-function showLicenseGate(errorMsg) {
-  const gate = document.getElementById("panelLicense");
-  gate.classList.remove("hidden");
-  const errEl = document.getElementById("licenseError");
-  if (errorMsg) errEl.textContent = errorMsg;
+// ── Init ───────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", async () => {
+  const licGate  = document.getElementById("panelLicense");
+  const licInput = document.getElementById("licenseKeyInput");
+  const licBtn   = document.getElementById("licenseActivateBtn");
+  const licError = document.getElementById("licenseError");
 
-  const btn = document.getElementById("licenseActivateBtn");
-  const input = document.getElementById("licenseKeyInput");
-
-  // Remove any previous listener to avoid duplicates
-  const newBtn = btn.cloneNode(true);
-  btn.parentNode.replaceChild(newBtn, btn);
-
-  newBtn.addEventListener("click", async () => {
-    const key = input.value.trim();
+  // Attach the click handler FIRST — before any async work
+  licBtn.addEventListener("click", async () => {
+    const key = licInput.value.trim();
     if (!key) {
-      input.classList.add("invalid");
-      document.getElementById("licenseError").textContent = "Please enter your license key.";
+      licInput.classList.add("invalid");
+      licError.textContent = "Please enter your license key.";
       return;
     }
-    input.classList.remove("invalid");
-    document.getElementById("licenseError").textContent = "";
+    licInput.classList.remove("invalid");
+    licError.textContent = "";
+    licBtn.disabled = true;
+    licBtn.innerHTML = '<span class="license-spinner"></span> Verifying…';
 
-    // Show spinner
-    newBtn.disabled = true;
-    newBtn.innerHTML = '<span class="license-spinner"></span> Verifying…';
-
-    const result = await window.LicenseManager.activateLicense(key);
-    if (result.ok) {
-      gate.classList.add("hidden");
-      initApp();
-    } else {
-      newBtn.disabled = false;
-      newBtn.textContent = "Activate";
-      input.classList.add("invalid");
-      document.getElementById("licenseError").textContent = result.error;
+    try {
+      const result = await window.LicenseManager.activateLicense(key);
+      if (result.ok) {
+        chrome.runtime.sendMessage({ type: "LICENSE_ACTIVATED" });
+        licGate.classList.add("hidden");
+        initApp();
+      } else {
+        licBtn.disabled = false;
+        licBtn.textContent = "Activate";
+        licInput.classList.add("invalid");
+        licError.textContent = result.error;
+      }
+    } catch (err) {
+      licBtn.disabled = false;
+      licBtn.textContent = "Activate";
+      licError.textContent = "Unexpected error. Please try again.";
+      console.error("[License]", err);
     }
   });
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") newBtn.click();
-  }, { once: false });
-}
+  licInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") licBtn.click();
+  });
 
-// ── Init ───────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", async () => {
-  // ── License check (must pass before anything is shown) ──
-  const licResult = await window.LicenseManager.checkLicense();
-
-  if (!licResult.licensed) {
-    if (licResult.reason === "expired") {
-      // Fire-and-forget background re-verify; show gate in the meantime
-      window.LicenseManager.silentReVerify(licResult.key);
-      // Also schedule the background alarm (in case it wasn't set)
-      chrome.alarms.create("licenseReVerify", { delayInMinutes: 1 });
-    }
-    showLicenseGate();
-    return; // Do NOT initialise the app until license is confirmed
+  // ── License check ──
+  let licResult;
+  try {
+    licResult = await window.LicenseManager.checkLicense();
+  } catch (err) {
+    console.error("[License] checkLicense error:", err);
+    return; // gate stays visible (shown by default in HTML)
   }
 
-  initApp();
+  if (licResult.licensed) {
+    licGate.classList.add("hidden");
+    initApp();
+  } else {
+    if (licResult.reason === "expired") {
+      window.LicenseManager.silentReVerify(licResult.key).catch(() => {});
+    }
+    // Gate stays visible (shown by default in HTML), nothing else to do
+  }
 });
 
 async function initApp() {

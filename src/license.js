@@ -94,10 +94,6 @@
     const verifiedAt = Date.now();
     const sig = await computeHmac(key, String(verifiedAt));
     await writeRecord({ key, verifiedAt, sig });
-
-    // Schedule the background re-verification alarm for ~2 days from now
-    chrome.alarms.create("licenseReVerify", { delayInMinutes: 2 * 24 * 60 });
-
     return { ok: true };
   }
 
@@ -150,7 +146,6 @@
       const verifiedAt = Date.now();
       const sig = await computeHmac(key, String(verifiedAt));
       await writeRecord({ key, verifiedAt, sig });
-      chrome.alarms.create("licenseReVerify", { delayInMinutes: 2 * 24 * 60 });
     } else {
       await clearRecord();
     }
