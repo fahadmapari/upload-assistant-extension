@@ -42,10 +42,6 @@ const DUMMY = {
   endPoint: "Roman Forum exit",
   tags: "Walk",
 
-  extraHour: "30",
-  extraHourB2C: "25",
-  extraHourRequest: "28",
-  extraHourRequestB2C: "22",
   holidaySupplement: "15",
   weekendSupplement: "10",
   startTime: "09:00",
@@ -76,6 +72,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       ["colCancellationRequest", "AV"],
       ["colRelease", "AU"],
       ["colReleaseRequest", "AW"],
+      ["colExtraHour", ""],
+      ["colExtraHourB2C", ""],
+      ["colExtraHourRequest", ""],
+      ["colExtraHourRequestB2C", ""],
       ["colMaxPax", "O"],
     ];
     cols.forEach(([id, fallback]) => {
@@ -114,6 +114,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     "colCancellationRequest",
     "colRelease",
     "colReleaseRequest",
+    "colExtraHour",
+    "colExtraHourB2C",
+    "colExtraHourRequest",
+    "colExtraHourRequestB2C",
     "colMaxPax",
   ].forEach((id) => {
     const el = $(id);
@@ -180,6 +184,10 @@ function buildConfig() {
     colCancellationRequest: col("colCancellationRequest") || "AV",
     colRelease: col("colRelease") || "AU",
     colReleaseRequest: col("colReleaseRequest") || "AW",
+    colExtraHour: col("colExtraHour") || "",
+    colExtraHourB2C: col("colExtraHourB2C") || "",
+    colExtraHourRequest: col("colExtraHourRequest") || "",
+    colExtraHourRequestB2C: col("colExtraHourRequestB2C") || "",
     colMaxPax: col("colMaxPax") || "O",
   };
 }
@@ -451,6 +459,10 @@ function buildTour(headers, row, rowNum, titleHyperlink = "") {
     cancellationRequest: col("colCancellationRequest"),
     release: col("colRelease"),
     releaseRequest: col("colReleaseRequest"),
+    extraHour: cleanRate(col("colExtraHour")),
+    extraHourB2C: cleanRate(col("colExtraHourB2C")),
+    extraHourRequest: cleanRate(col("colExtraHourRequest")),
+    extraHourRequestB2C: cleanRate(col("colExtraHourRequestB2C")),
     maxPax,
   };
 }
@@ -640,14 +652,10 @@ const FILL_FIELDS = [
   { key: "endPoint", label: "End Point", source: "dummy" },
   { key: "tags", label: "Tags", source: "dummy" },
 
-  { key: "extraHour", label: "Extra Hour (Instant)", source: "dummy" },
-  { key: "extraHourB2C", label: "Extra Hour B2C", source: "dummy" },
-  { key: "extraHourRequest", label: "Extra Hour (Request)", source: "dummy" },
-  {
-    key: "extraHourRequestB2C",
-    label: "Extra Hour B2C (Request)",
-    source: "dummy",
-  },
+  { key: "extraHour", label: "Extra Hour Supplement (Instant)", source: "sheet" },
+  { key: "extraHourB2C", label: "Extra Hour Supplement B2C (Instant)", source: "sheet" },
+  { key: "extraHourRequest", label: "Extra Hour Supplement (On Request)", source: "sheet" },
+  { key: "extraHourRequestB2C", label: "Extra Hour Supplement B2C (On Request)", source: "sheet" },
   { key: "holidaySupplement", label: "Holiday Supplement %", source: "dummy" },
   { key: "weekendSupplement", label: "Weekend Supplement %", source: "dummy" },
   { key: "startTime", label: "Start Time", source: "dummy" },
@@ -708,6 +716,10 @@ async function goToFillPanel(tour) {
       cancellationRequest: tour.cancellationRequest || null,
       release: tour.release || DUMMY.release,
       releaseRequest: tour.releaseRequest || null,
+      extraHour: tour.extraHour || null,
+      extraHourB2C: tour.extraHourB2C || null,
+      extraHourRequest: tour.extraHourRequest || null,
+      extraHourRequestB2C: tour.extraHourRequestB2C || null,
       startDate: _fmt(_now),
       endDate: _fmt(_end),
       startTime: "08:00",
@@ -834,6 +846,10 @@ async function startFill() {
     cancellationRequest: selectedTour.cancellationRequest || null,
     release: selectedTour.release || DUMMY.release,
     releaseRequest: selectedTour.releaseRequest || null,
+    extraHour: selectedTour.extraHour || null,
+    extraHourB2C: selectedTour.extraHourB2C || null,
+    extraHourRequest: selectedTour.extraHourRequest || null,
+    extraHourRequestB2C: selectedTour.extraHourRequestB2C || null,
     startDate: _fmt(_now),
     endDate: _fmt(_end),
     startTime: "08:00",
