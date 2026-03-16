@@ -1248,6 +1248,7 @@ function injectTourData(tour) {
     await fillNgSelect("activityFor", tour.activityFor);
     await fillNgSelect("voucherType", tour.voucherType);
     await fillNgSelect("countryId", tour.country);
+    await sleep(900); // wait for city options to cascade-load after country selection
     await fillNgSelect("cityId", tour.city);
 
     await fillNgSelect("tourGuideLanguageList", tour.guideLanguageInstant);
