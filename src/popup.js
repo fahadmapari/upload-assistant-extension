@@ -46,8 +46,71 @@ const DEFAULT = {
   endTime: "13:00",
 };
 
+// ── License Gate ───────────────────────────────────────
+function showLicenseGate(errorMsg) {
+  const gate = document.getElementById("panelLicense");
+  gate.classList.remove("hidden");
+  const errEl = document.getElementById("licenseError");
+  if (errorMsg) errEl.textContent = errorMsg;
+
+  const btn = document.getElementById("licenseActivateBtn");
+  const input = document.getElementById("licenseKeyInput");
+
+  // Remove any previous listener to avoid duplicates
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+
+  newBtn.addEventListener("click", async () => {
+    const key = input.value.trim();
+    if (!key) {
+      input.classList.add("invalid");
+      document.getElementById("licenseError").textContent = "Please enter your license key.";
+      return;
+    }
+    input.classList.remove("invalid");
+    document.getElementById("licenseError").textContent = "";
+
+    // Show spinner
+    newBtn.disabled = true;
+    newBtn.innerHTML = '<span class="license-spinner"></span> Verifying…';
+
+    const result = await window.LicenseManager.activateLicense(key);
+    if (result.ok) {
+      gate.classList.add("hidden");
+      initApp();
+    } else {
+      newBtn.disabled = false;
+      newBtn.textContent = "Activate";
+      input.classList.add("invalid");
+      document.getElementById("licenseError").textContent = result.error;
+    }
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") newBtn.click();
+  }, { once: false });
+}
+
 // ── Init ───────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
+  // ── License check (must pass before anything is shown) ──
+  const licResult = await window.LicenseManager.checkLicense();
+
+  if (!licResult.licensed) {
+    if (licResult.reason === "expired") {
+      // Fire-and-forget background re-verify; show gate in the meantime
+      window.LicenseManager.silentReVerify(licResult.key);
+      // Also schedule the background alarm (in case it wasn't set)
+      chrome.alarms.create("licenseReVerify", { delayInMinutes: 1 });
+    }
+    showLicenseGate();
+    return; // Do NOT initialise the app until license is confirmed
+  }
+
+  initApp();
+});
+
+async function initApp() {
   config = await loadConfig();
 
   if (config.sheetId) {
@@ -135,7 +198,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const card = e.target.closest(".tour-card");
     if (card) selectTour(parseInt(card.dataset.row));
   });
-});
+}
 
 // ── Config ─────────────────────────────────────────────
 function loadConfig() {

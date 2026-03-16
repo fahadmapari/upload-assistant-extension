@@ -4,11 +4,12 @@
   "version": "1.0.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqgwcvgoUjsQpcWnUsctEB0coKEeHRcM4hTOBhp+28wOJaXFB5r1NzVwaJDCSeM0+pvPw0J6OAmDOtT1Sni2MGYQ92h73s+R+xHuvFagDtNbi+AciLQYg5y2ayVBHHcqFsXTonvc+2EcY53bFvUXvJOLXvQyHcdotRGvgGM6wUzzVi1FJwhA+WWdbSgs3zutWRy5VlKLlwcuR/xlzx+3NzN5FBYfXn1NwZ/dilkIQLho9TXE3Jm7Au8cqQ7GcG53y7IwF6ZY3170ltGer8M75R5jx9POai00p+AEmTsh0BOd3l/9cxwpjg63vuKRyb/qNumFneke/xvk8I35FtC5MMQIDAQAB",
   "description": "Autofill tour data from Google Sheets & Docs into the admin panel",
-  "permissions": ["activeTab", "scripting", "storage", "identity"],
+  "permissions": ["activeTab", "scripting", "storage", "identity", "alarms"],
   "host_permissions": [
     "https://sheets.googleapis.com/*",
     "https://docs.googleapis.com/*",
-    "https://www.googleapis.com/*"
+    "https://www.googleapis.com/*",
+    "https://upload-assistant.fahadmapari09.workers.dev/*"
   ],
   "oauth2": {
     "client_id": "91348474446-r30ubmq99ec2r03bcdhoedk73o27u4pa.apps.googleusercontent.com",
