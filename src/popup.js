@@ -681,7 +681,7 @@ function mergeDocData(fillData) {
   if (d.youWillLearn?.length) fillData.willLearn   = d.youWillLearn.join("\n");
   if (d.inclusions?.length) fillData.included      = d.inclusions.join(",");
   if (d.exclusions?.length) fillData.notIncluded   = d.exclusions.join(",");
-  if (d.additionalInfo?.length) fillData.mandatoryInfo = d.additionalInfo[0] || "";
+  if (d.additionalInfo?.length) fillData.recommendedInfo = d.additionalInfo.join(",");
   if (d.meetingPoint)       fillData.meetingPoint  = d.meetingPoint;
   if (d.endLocation)        fillData.endPoint      = d.endLocation;
   if (d.longitude)          fillData.longitude     = d.longitude;
@@ -1203,7 +1203,6 @@ function injectTourData(tour) {
     await fillByControl("tourTitle", tour.title);
     await fillByControl("descriptionWillSee", tour.willSee);
     await fillByControl("descriptionLearn", tour.willLearn);
-    await fillByControl("mandatoryInformation", tour.mandatoryInfo);
     await fillByControl("recommendedInformation", tour.recommendedInfo);
     await fillByControl("included", tour.included);
     await fillByControl("notIncluded", tour.notIncluded);

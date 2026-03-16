@@ -60,7 +60,7 @@ function isSeparator(text) {
 }
 
 function splitSoftBreaks(text) {
-  return text.split("\n").map(l => l.trim()).filter(Boolean);
+  return text.split("\n").map(l => l.replace(/\u00a0/g, " ").trim()).filter(Boolean);
 }
 
 /**
@@ -69,11 +69,11 @@ function splitSoftBreaks(text) {
  * "VIATOR / EXPEDIA / KLOOK …", "SS note: …", platform distribution lists.
  */
 function isNoiseLine(text) {
-  const t = text.trim();
+  const t = text.replace(/\u00a0/g, " ").trim();
   return (
     /^price\s+is\s+missing:?\s*$/i.test(t)          ||
-    /^sources?\s*:?\s*$/i.test(t)                    ||
-    /^notes?\s*:?\s*$/i.test(t)                      ||
+    /^sources?\s*:/i.test(t)                           ||
+    /^notes?\s*:/i.test(t)                            ||
     /^changed\s+to\s+.+$/i.test(t)                   ||
     /^BOKUN\s*$/i.test(t)                             ||
     /^(VIATOR|EXPEDIA|KLOOK)/i.test(t)               ||
