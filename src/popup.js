@@ -648,6 +648,8 @@ const FILL_FIELDS = [
   { key: "extraHourB2C", label: "Extra Hour Supplement B2C (Instant)", source: "sheet" },
   { key: "extraHourRequest", label: "Extra Hour Supplement (On Request)", source: "sheet" },
   { key: "extraHourRequestB2C", label: "Extra Hour Supplement B2C (On Request)", source: "sheet" },
+  { key: "startDate", label: "Start Date", source: "default" },
+  { key: "endDate", label: "End Date", source: "default" },
   { key: "startTime", label: "Start Time", source: "default" },
   { key: "endTime", label: "End Time", source: "default" },
 ];
@@ -1004,15 +1006,16 @@ function injectTourData(tour) {
     }
   }
 
-  async function fillByControl(controlName, value) {
+  async function fillByControl(controlName, value, reportKey) {
+    const key = reportKey || controlName;
     if (!value && value !== 0) return;
     const el = document.querySelector(`[formcontrolname="${controlName}"]`);
     if (!el || el.disabled || el.getAttribute("readonly") === "readonly") return;
     await ensurePanelOpen(el);
     const tag = el.tagName.toLowerCase();
     if (tag === "input" || tag === "textarea") {
-      if (setNativeInput(el, value)) filled.push(controlName);
-      else failed.push(controlName);
+      if (setNativeInput(el, value)) filled.push(key);
+      else failed.push(key);
     }
   }
 
@@ -1049,10 +1052,11 @@ function injectTourData(tour) {
     return null;
   }
 
-  async function fillNgSelect(controlName, value) {
+  async function fillNgSelect(controlName, value, reportKey) {
+    const key = reportKey || controlName;
     if (!value) return;
     const el = document.querySelector(`[formcontrolname="${controlName}"]`);
-    if (!el) { failed.push(controlName); return; }
+    if (!el) { failed.push(key); return; }
     try {
       await ensurePanelOpen(el);
       const comp = getNgSelectComp(el);
@@ -1067,16 +1071,16 @@ function injectTourData(tour) {
         if (match) {
           comp.select(match);
           comp.close();
-          filled.push(controlName);
+          filled.push(key);
         } else {
           const available = items.map((i) => i.label).join(", ") || "(no items loaded)";
-          errors[controlName] = `No match for "${value}". Available: ${available.slice(0, 120)}`;
+          errors[key] = `No match for "${value}". Available: ${available.slice(0, 120)}`;
           comp.close();
-          failed.push(controlName);
+          failed.push(key);
         }
       } else {
         // Fallback: DOM click approach (for non-Ivy or unrecognised components)
-        errors[controlName] = "Angular context not found — used DOM fallback";
+        errors[key] = "Angular context not found — used DOM fallback";
         const trigger = el.querySelector(".ng-select-container") || el;
         trigger.click();
         await sleep(300);
@@ -1094,24 +1098,25 @@ function injectTourData(tour) {
         const match =
           options.find((o) => o.textContent.trim() === value) ||
           options.find((o) => o.textContent.trim().toLowerCase().includes(value.toLowerCase()));
-        if (match) { delete errors[controlName]; match.click(); filled.push(controlName); }
+        if (match) { delete errors[key]; match.click(); filled.push(key); }
         else {
-          errors[controlName] = `DOM fallback: no option matching "${value}"`;
-          document.body.click(); failed.push(controlName);
+          errors[key] = `DOM fallback: no option matching "${value}"`;
+          document.body.click(); failed.push(key);
         }
       }
       await sleep(200);
     } catch (e) {
-      errors[controlName] = e.message;
+      errors[key] = e.message;
       console.error("[TourExt] fillNgSelect failed for", controlName, ":", e.message);
-      failed.push(controlName);
+      failed.push(key);
     }
   }
 
-  async function fillNgSelectMultiple(controlName, values) {
+  async function fillNgSelectMultiple(controlName, values, reportKey) {
+    const key = reportKey || controlName;
     if (!values || !values.length) return;
     const el = document.querySelector(`[formcontrolname="${controlName}"]`);
-    if (!el) { failed.push(controlName); return; }
+    if (!el) { failed.push(key); return; }
     try {
       await ensurePanelOpen(el);
       const comp = getNgSelectComp(el);
@@ -1129,7 +1134,7 @@ function injectTourData(tour) {
           }
         }
         comp.close();
-        filled.push(controlName);
+        filled.push(key);
       } else {
         // Fallback: DOM click approach
         for (const value of values) {
@@ -1147,12 +1152,12 @@ function injectTourData(tour) {
           if (match) { match.click(); await sleep(100); }
           else { document.body.click(); await sleep(100); }
         }
-        filled.push(controlName);
+        filled.push(key);
       }
     } catch (e) {
-      errors[controlName] = e.message;
+      errors[key] = e.message;
       console.error("[TourExt] fillNgSelectMultiple failed for", controlName, ":", e.message);
-      failed.push(controlName);
+      failed.push(key);
     }
   }
 
@@ -1186,10 +1191,11 @@ function injectTourData(tour) {
     if (collapsedHeaders.length > 0) await sleep(800);
 
     // Text / number inputs
-    await fillByControl("tourTitle", tour.title);
-    await fillByControl("descriptionWillSee", tour.willSee);
-    await fillByControl("descriptionLearn", tour.willLearn);
-    await fillByControl("recommendedInformation", tour.recommendedInfo);
+    await fillByControl("tourTitle", tour.title, "title");
+    await fillByControl("descriptionWillSee", tour.willSee, "willSee");
+    await fillByControl("descriptionLearn", tour.willLearn, "willLearn");
+    await fillByControl("mandatoryInformation", tour.mandatoryInfo, "mandatoryInfo");
+    await fillByControl("recommendedInformation", tour.recommendedInfo, "recommendedInfo");
     await fillByControl("included", tour.included);
     await fillByControl("notIncluded", tour.notIncluded);
     await fillByControl("noOfPax", tour.noOfPax);
@@ -1202,12 +1208,12 @@ function injectTourData(tour) {
     // Prices
     await fillByControl("rate", tour.rate);
     await fillByControl("rateB2C", tour.rateB2C);
-    await fillByControl("rate_request", tour.rateRequest);
-    await fillByControl("rate_requestB2C", tour.rateRequestB2C);
-    await fillByControl("extraHourCharges", tour.extraHour);
-    await fillByControl("extraHourChargesB2C", tour.extraHourB2C);
-    await fillByControl("extraHourCharges_request", tour.extraHourRequest);
-    await fillByControl("extraHourCharges_requestB2C", tour.extraHourRequestB2C);
+    await fillByControl("rate_request", tour.rateRequest, "rateRequest");
+    await fillByControl("rate_requestB2C", tour.rateRequestB2C, "rateRequestB2C");
+    await fillByControl("extraHourCharges", tour.extraHour, "extraHour");
+    await fillByControl("extraHourChargesB2C", tour.extraHourB2C, "extraHourB2C");
+    await fillByControl("extraHourCharges_request", tour.extraHourRequest, "extraHourRequest");
+    await fillByControl("extraHourCharges_requestB2C", tour.extraHourRequestB2C, "extraHourRequestB2C");
     // Schedule
     await fillNgbDatepicker("startDate", tour.startDate);
     await fillNgbDatepicker("endDate", tour.endDate);
@@ -1229,13 +1235,13 @@ function injectTourData(tour) {
     await fillNgSelect("subType", tour.subType);
     await fillNgSelect("activityFor", tour.activityFor);
     await fillNgSelect("voucherType", tour.voucherType);
-    await fillNgSelect("countryId", tour.country);
+    await fillNgSelect("countryId", tour.country, "country");
     await sleep(900); // wait for city options to cascade-load after country selection
-    await fillNgSelect("cityId", tour.city);
+    await fillNgSelect("cityId", tour.city, "city");
 
-    await fillNgSelect("tourGuideLanguageList", tour.guideLanguageInstant);
-    await fillNgSelectMultiple("tourGuideLanguageList_request", tour.guideLanguageRequest);
-    await fillNgSelect("tagsList", tour.tags);
+    await fillNgSelect("tourGuideLanguageList", tour.guideLanguageInstant, "guideLanguageInstant");
+    await fillNgSelectMultiple("tourGuideLanguageList_request", tour.guideLanguageRequest, "guideLanguageRequest");
+    await fillNgSelect("tagsList", tour.tags, "tags");
 
     return { success: true, filled, failed, errors };
   }
