@@ -21,8 +21,6 @@ const DEFAULT = {
 
   activityType: "City Tours",
   subType: "Walking Tours",
-  mandatoryInfo: "Comfortable walking shoes required",
-  recommendedInfo: "Water bottle,Sunscreen,Camera",
   activityFor: "All",
   voucherType: "Printed or E-Voucher Accepted",
   noOfPax: "15",
