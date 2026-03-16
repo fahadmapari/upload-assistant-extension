@@ -696,7 +696,7 @@ async function goToFillPanel(tour) {
       noOfPax: tour.maxPax,
       country: tour.country || DUMMY.country,
       city: tour.city || DUMMY.city,
-      duration: tour.duration || DUMMY.duration,
+      duration: tour.duration || currentDocTour?.duration || "",
       rate: tour.rate || DUMMY.rate,
       rateRequest: tour.rateRequest || DUMMY.rateRequest,
       rateB2C: tour.rateB2C || DUMMY.rateB2C,
@@ -809,7 +809,7 @@ async function startFill() {
   const _fmt = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 
   // Compute end time: 22:00 minus duration hours (e.g. "2h" → 20:00)
-  const _durHours = parseInt((selectedTour.duration || "").replace(/h.*/i, "")) || 0;
+  const _durHours = parseInt((selectedTour.duration || currentDocTour?.duration || "").replace(/h.*/i, "")) || 0;
   const _endHour = Math.max(0, 22 - _durHours);
   const _endTime = `${String(_endHour).padStart(2, "0")}:00`;
 
@@ -822,7 +822,7 @@ async function startFill() {
     noOfPax: selectedTour.maxPax,
     country: selectedTour.country || DUMMY.country,
     city: selectedTour.city || DUMMY.city,
-    duration: selectedTour.duration || DUMMY.duration,
+    duration: selectedTour.duration || currentDocTour?.duration || "",
     rate: selectedTour.rate || DUMMY.rate,
     rateRequest: selectedTour.rateRequest || DUMMY.rateRequest,
     rateB2C: selectedTour.rateB2C || DUMMY.rateB2C,
