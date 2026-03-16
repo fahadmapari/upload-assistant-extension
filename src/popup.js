@@ -375,9 +375,11 @@ function updateConfigBar() {
 }
 
 // ── Tour cache ─────────────────────────────────────────
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
 function saveCachedTours(data) {
   return new Promise((resolve) =>
-    chrome.storage.local.set({ tourExtCache: data }, () => {
+    chrome.storage.local.set({ tourExtCache: { data, savedAt: Date.now() } }, () => {
       if (chrome.runtime.lastError) {
         console.error("[TourExt] saveCachedTours error:", chrome.runtime.lastError.message);
       }
@@ -392,7 +394,12 @@ function loadCachedTours() {
         console.error("[TourExt] loadCachedTours error:", chrome.runtime.lastError.message);
         resolve(null);
       } else {
-        resolve(r.tourExtCache || null);
+        const entry = r.tourExtCache;
+        if (!entry) { resolve(null); return; }
+        // Support legacy cache entries that stored the array directly
+        if (Array.isArray(entry)) { resolve(null); return; }
+        if (Date.now() - entry.savedAt > CACHE_TTL_MS) { resolve(null); return; }
+        resolve(entry.data || null);
       }
     }),
   );
