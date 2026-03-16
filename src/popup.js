@@ -325,7 +325,7 @@ async function loadTours(forceFresh = false) {
   $("tourCountLabel").textContent = "Fetching from Google Sheets…";
 
   try {
-    const range = `'${config.sheetTab}'!A:Z`;
+    const range = `'${config.sheetTab}'`; // no column bounds — fetch entire sheet
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(range)}`;
 
     console.log("[TourExt] Fetching range:", range);
@@ -405,6 +405,13 @@ async function loadTours(forceFresh = false) {
   }
 }
 
+// Strip currency symbols, commas, and whitespace — keep only digits and decimal point
+function cleanRate(val) {
+  if (!val) return val;
+  const cleaned = val.replace(/[^0-9.]/g, "");
+  return cleaned || val;
+}
+
 function buildTour(headers, row, rowNum, titleHyperlink = "") {
   // Helper: get cell value by configured column letter (e.g. "A" → index 0)
   const col = (cfgKey) => {
@@ -438,10 +445,10 @@ function buildTour(headers, row, rowNum, titleHyperlink = "") {
     city: col("colCity"),
     duration: col("colDuration"),
     serviceType,
-    rate: col("colRate"),
-    rateRequest: col("colRateRequest"),
-    rateB2C: col("colRateB2C"),
-    rateRequestB2C: col("colRateRequestB2C"),
+    rate: cleanRate(col("colRate")),
+    rateRequest: cleanRate(col("colRateRequest")),
+    rateB2C: cleanRate(col("colRateB2C")),
+    rateRequestB2C: cleanRate(col("colRateRequestB2C")),
     cancellation: col("colCancellation"),
     cancellationRequest: col("colCancellationRequest"),
     release: col("colRelease"),
