@@ -111,6 +111,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function initApp() {
+  const { version } = chrome.runtime.getManifest();
+  const vEl = document.getElementById("extVersion");
+  if (vEl) vEl.textContent = `v${version}`;
+
   config = await loadConfig();
 
   if (config.sheetId) {
