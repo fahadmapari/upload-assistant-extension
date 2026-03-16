@@ -893,6 +893,11 @@ async function startFill() {
         failCount ? "error" : "success",
       );
       setStatus("ready");
+      $("startFillBtn").disabled = true;
+      $("startFillBtn").innerHTML =
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polyline points="20 6 9 17 4 12" style="fill:none;stroke:currentColor;stroke-width:3"/></svg> Autofill Completed';
+      $("startFillBtn").style.opacity = "0.6";
+      return;
     } else {
       throw new Error(outcome?.error || "Unknown error");
     }
@@ -900,10 +905,11 @@ async function startFill() {
     console.error("[TourExt] startFill failed:", e.message);
     showToast("Fill failed: " + e.message, "error");
     setStatus("error");
+    $("startFillBtn").disabled = false;
+    $("startFillBtn").innerHTML =
+      '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Autofill';
+    $("startFillBtn").style.opacity = "";
   }
-
-  $("startFillBtn").disabled = false;
-  $("startFillBtn").innerHTML = "▶ Start Autofill";
 }
 
 // ── Injected into admin page ────────────────────────────
