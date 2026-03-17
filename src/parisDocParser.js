@@ -366,23 +366,25 @@ function parseSection(paragraphs) {
         if (restLines) addToList(listField, restLines);
         continue;
       }
+    }
 
-      // Inline field labels
-      const inlineMatch = INLINE_FIELD_PATTERNS.find(([re]) => re.test(firstLine));
-      if (inlineMatch) {
-        const [pattern, fieldName] = inlineMatch;
-        const inlineValue = firstLine.replace(pattern, "").replace(/^[\s:]+/, "").trim()
-                         || firstLine.split(/:\s*/)[1]?.trim()
-                         || "";
-        inDesc = false; listField = null;
-        if (inlineValue) {
-          tour[fieldName] = inlineValue;
-        } else {
-          // Value might be on the next line (after empty lines) — wait for it
-          pendingInlineField = fieldName;
-        }
-        continue;
+    // Inline field labels — checked for bold/heading AND plain paragraphs,
+    // because labels like "End location: Same as meeting point" can appear
+    // without bold formatting.
+    const inlineMatch = INLINE_FIELD_PATTERNS.find(([re]) => re.test(firstLine));
+    if (inlineMatch) {
+      const [pattern, fieldName] = inlineMatch;
+      const inlineValue = firstLine.replace(pattern, "").replace(/^[\s:]+/, "").trim()
+                       || firstLine.split(/:\s*/)[1]?.trim()
+                       || "";
+      inDesc = false; listField = null;
+      if (inlineValue) {
+        tour[fieldName] = inlineValue;
+      } else {
+        // Value might be on the next line (after empty lines) — wait for it
+        pendingInlineField = fieldName;
       }
+      continue;
     }
 
     // Accumulate into active list field
