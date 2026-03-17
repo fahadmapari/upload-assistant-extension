@@ -1385,7 +1385,7 @@ function injectTourData(tour) {
     }
     try {
       editor.focus();
-      editor.innerHTML = `<p>${value.replace(/\n/g, "</p><p>")}</p>`;
+      editor.innerHTML = `<p>${value.replace(/\n{2,}/g, "\n").replace(/\n/g, "</p><p>")}</p>`;
       editor.dispatchEvent(new Event("input", { bubbles: true }));
       editor.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
       filled.push("description");
