@@ -160,12 +160,12 @@ async function initApp() {
       ["colCancellationRequest", "AV"],
       ["colRelease", "AU"],
       ["colReleaseRequest", "AW"],
-      ["colExtraHour", ""],
-      ["colExtraHourB2C", ""],
-      ["colExtraHourRequest", ""],
-      ["colExtraHourRequestB2C", ""],
+      ["colExtraHour", "AN"],
+      ["colExtraHourB2C", "AP"],
+      ["colExtraHourRequest", "AO"],
+      ["colExtraHourRequestB2C", "AQ"],
       ["colMaxPax", "O"],
-      ["colReadyForUpload", ""],
+      ["colReadyForUpload", "BN"],
     ];
     cols.forEach(([id, fallback]) => {
       const el = $(id);
@@ -293,12 +293,12 @@ function buildConfig() {
     colCancellationRequest: col("colCancellationRequest") || "AV",
     colRelease: col("colRelease") || "AU",
     colReleaseRequest: col("colReleaseRequest") || "AW",
-    colExtraHour: col("colExtraHour") || "",
-    colExtraHourB2C: col("colExtraHourB2C") || "",
-    colExtraHourRequest: col("colExtraHourRequest") || "",
-    colExtraHourRequestB2C: col("colExtraHourRequestB2C") || "",
+    colExtraHour: col("colExtraHour") || "AN",
+    colExtraHourB2C: col("colExtraHourB2C") || "AP",
+    colExtraHourRequest: col("colExtraHourRequest") || "AO",
+    colExtraHourRequestB2C: col("colExtraHourRequestB2C") || "AQ",
     colMaxPax: col("colMaxPax") || "O",
-    colReadyForUpload: col("colReadyForUpload") || "",
+    colReadyForUpload: col("colReadyForUpload") || "BN",
   };
 }
 
