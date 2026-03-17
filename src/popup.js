@@ -869,8 +869,8 @@ function mergeDocData(fillData) {
   if (d.description)        fillData.description  = d.description;
   if (d.youWillSee?.length) fillData.willSee       = d.youWillSee.join("\n");
   if (d.youWillLearn?.length) fillData.willLearn   = d.youWillLearn.join("\n");
-  if (d.inclusions?.length) fillData.included      = d.inclusions.join(",");
-  if (d.exclusions?.length) fillData.notIncluded   = d.exclusions.join(",");
+  if (d.inclusions?.length) fillData.included      = d.inclusions.join(",\n");
+  if (d.exclusions?.length) fillData.notIncluded   = d.exclusions.join(",\n");
   if (d.additionalInfo?.length) fillData.recommendedInfo = d.additionalInfo.join(",");
   if (d.meetingPoint)       fillData.meetingPoint  = d.meetingPoint;
   if (d.endLocation)        fillData.endPoint      = d.endLocation;
