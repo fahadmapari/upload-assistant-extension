@@ -324,8 +324,8 @@ function parseSection(paragraphs) {
     // Review flags — skip regardless of style
     if (isReviewFlagParagraph(para)) { listField = null; inDesc = true; continue; }
 
-    // Noise lines — skip everywhere
-    if (isNoiseLine(text)) continue;
+    // Noise lines — skip everywhere; also ends any active list section
+    if (isNoiseLine(text)) { listField = null; continue; }
 
     // Separator lines (dashes or underscores) — end of content
     if (isSeparator(text)) { listField = null; inDesc = false; continue; }

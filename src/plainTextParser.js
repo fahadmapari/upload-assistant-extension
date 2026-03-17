@@ -154,8 +154,8 @@ function parsePlainTextTour(rawText) {
     // Review / approval flags — skip, reset list context
     if (ptIsReviewFlag(text)) { listField = null; inDesc = true; continue; }
 
-    // Noise — always skip
-    if (ptIsNoise(text)) continue;
+    // Noise — always skip; also ends any active list section
+    if (ptIsNoise(text)) { listField = null; continue; }
 
     // Separator lines — end of meaningful content
     if (ptIsSeparator(text)) { listField = null; inDesc = false; continue; }
