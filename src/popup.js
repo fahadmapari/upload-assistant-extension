@@ -4,6 +4,7 @@ let tours = [];
 let selectedTour = null;
 let filteredTours = [];
 let currentDocTour = null; // parsed tour data from Google Doc
+let showReadyOnly = false;
 
 // Fields populated from the Google Doc (not sheet or default)
 const DOC_FIELDS = new Set([
@@ -164,6 +165,7 @@ async function initApp() {
       ["colExtraHourRequest", ""],
       ["colExtraHourRequestB2C", ""],
       ["colMaxPax", "O"],
+      ["colReadyForUpload", ""],
     ];
     cols.forEach(([id, fallback]) => {
       const el = $(id);
@@ -206,6 +208,7 @@ async function initApp() {
     "colExtraHourRequest",
     "colExtraHourRequestB2C",
     "colMaxPax",
+    "colReadyForUpload",
   ].forEach((id) => {
     const el = $(id);
     if (el) el.addEventListener("input", autoSaveConfig);
@@ -213,6 +216,10 @@ async function initApp() {
   $("searchInput").addEventListener("input", (e) =>
     filterTours(e.target.value),
   );
+  $("readyOnlyToggle").addEventListener("change", (e) => {
+    showReadyOnly = e.target.checked;
+    filterTours($("searchInput").value);
+  });
   $("refreshBtn").addEventListener("click", () => loadTours(true));
   $("selectFillBtn").addEventListener("click", () => {
     if (selectedTour) goToFillPanel(selectedTour);
@@ -276,6 +283,7 @@ function buildConfig() {
     colExtraHourRequest: col("colExtraHourRequest") || "",
     colExtraHourRequestB2C: col("colExtraHourRequestB2C") || "",
     colMaxPax: col("colMaxPax") || "O",
+    colReadyForUpload: col("colReadyForUpload") || "",
   };
 }
 
@@ -580,6 +588,7 @@ function buildTour(headers, row, rowNum, titleHyperlink = "") {
     extraHourRequest: cleanRate(col("colExtraHourRequest")),
     extraHourRequestB2C: cleanRate(col("colExtraHourRequestB2C")),
     maxPax,
+    readyForUpload: col("colReadyForUpload").toUpperCase() === "TRUE",
   };
 }
 
@@ -675,14 +684,15 @@ function selectTour(rowNum) {
 
 function filterTours(query) {
   const q = query.toLowerCase();
+  let base = showReadyOnly ? tours.filter((t) => t.readyForUpload) : [...tours];
   filteredTours = q
-    ? tours.filter(
+    ? base.filter(
         (t) =>
           (t.title || "").toLowerCase().includes(q) ||
           (t.country || "").toLowerCase().includes(q) ||
           (t.city || "").toLowerCase().includes(q),
       )
-    : [...tours];
+    : base;
   $("tourCountLabel").textContent =
     `${filteredTours.length} of ${tours.length} tours`;
   renderTourList(filteredTours);
