@@ -1,0 +1,12 @@
+{
+  "name": "tour-extension",
+  "version": "1.0.0",
+  "description": "Build script for obfuscating and packaging the Chrome extension",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^4.1.1",
+    "archiver": "^7.0.1"
+  }
+}

@@ -140,37 +140,38 @@ async function initApp() {
 
   config = await loadConfig();
 
+  // Restore column inputs (always, so new devices get defaults pre-filled)
+  const cols = [
+    ["colTitle", "F"],
+    ["colDocUrl", "F"],
+    ["colCountry", "A"],
+    ["colCity", "B"],
+    ["colDuration", "G"],
+    ["colServiceType", "E"],
+    ["colRate", "AK"],
+    ["colRateRequest", "AK"],
+    ["colRateB2C", "AL"],
+    ["colRateRequestB2C", "AM"],
+    ["colCancellation", "AT"],
+    ["colCancellationRequest", "AV"],
+    ["colRelease", "AU"],
+    ["colReleaseRequest", "AW"],
+    ["colExtraHour", "AN"],
+    ["colExtraHourB2C", "AP"],
+    ["colExtraHourRequest", "AO"],
+    ["colExtraHourRequestB2C", "AQ"],
+    ["colMaxPax", "O"],
+    ["colReadyForUpload", "BN"],
+  ];
+  cols.forEach(([id, fallback]) => {
+    const el = $(id);
+    if (el) el.value = config[id] || fallback;
+  });
+
   if (config.sheetId) {
     $("sheetId").value  = config.sheetId;
     $("sheetTab").value = config.sheetTab || "Sheet1";
     if (config.apiKey) $("apiKey").value = config.apiKey; // legacy field
-    // Restore column inputs
-    const cols = [
-      ["colTitle", "F"],
-      ["colDocUrl", "F"],
-      ["colCountry", "A"],
-      ["colCity", "B"],
-      ["colDuration", "G"],
-      ["colServiceType", "E"],
-      ["colRate", "AK"],
-      ["colRateRequest", "AK"],
-      ["colRateB2C", "AL"],
-      ["colRateRequestB2C", "AM"],
-      ["colCancellation", "AT"],
-      ["colCancellationRequest", "AV"],
-      ["colRelease", "AU"],
-      ["colReleaseRequest", "AW"],
-      ["colExtraHour", "AN"],
-      ["colExtraHourB2C", "AP"],
-      ["colExtraHourRequest", "AO"],
-      ["colExtraHourRequestB2C", "AQ"],
-      ["colMaxPax", "O"],
-      ["colReadyForUpload", "BN"],
-    ];
-    cols.forEach(([id, fallback]) => {
-      const el = $(id);
-      if (el) el.value = config[id] || fallback;
-    });
     showPanel("panelList");
     if (!config.sheetName) fetchAndStoreSheetTitle().then(updateConfigBar);
     updateConfigBar();
