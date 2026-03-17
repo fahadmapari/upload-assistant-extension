@@ -241,6 +241,7 @@ function switchListTab(tab) {
   $("tabMyUploads").classList.toggle("active", tab === "uploads");
   $("allToursView").style.display = tab === "all" ? "" : "none";
   $("myUploadsView").style.display = tab === "uploads" ? "" : "none";
+  $("selectFillBtn").style.display = tab === "uploads" ? "none" : "";
   if (tab === "uploads") {
     deselectTour();
     renderUploadsList();
