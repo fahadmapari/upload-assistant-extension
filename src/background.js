@@ -1,4 +1,10 @@
 // Background service worker
+
+// Open side panel when the extension icon is clicked
+chrome.action.onClicked.addListener((tab) => {
+  chrome.sidePanel.open({ windowId: tab.windowId });
+});
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Upload Assistant installed');
   scheduleAlarmIfNeeded();

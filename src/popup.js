@@ -293,6 +293,27 @@ async function initApp() {
 
   $("tabAllTours").addEventListener("click", () => switchListTab("all"));
   $("tabMyUploads").addEventListener("click", () => switchListTab("uploads"));
+
+  // ── Side panel: track active tab so fill panel warns on wrong tab ──
+  const REQUIRED_URL =
+    "https://trav-ui-admin-prod.azurewebsites.net/#/admin/product/add";
+
+  async function updateTabWarning() {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
+    const onCorrectTab = tab?.url === REQUIRED_URL;
+    const warning = $("wrongTabWarning");
+    if (warning) warning.style.display = onCorrectTab ? "none" : "flex";
+    const btn = $("startFillBtn");
+    if (btn && btn.dataset.loading !== "true") btn.disabled = !onCorrectTab;
+  }
+
+  chrome.tabs.onActivated.addListener(updateTabWarning);
+  chrome.tabs.onUpdated.addListener((_id, change) => {
+    if (change.url !== undefined) updateTabWarning();
+  });
 }
 
 function switchListTab(tab) {
@@ -1163,7 +1184,7 @@ async function goToFillPanel(tour) {
       duration: tour.duration || currentDocTour?.duration || "",
       rate: tour.rate || DEFAULT.rate,
       rateRequest: tour.rateRequest || DEFAULT.rateRequest,
-      rateB2C: tour.rateB2C || DEFAULT.rateB2C,
+      rateB2C: tour.rateB2C || tour.rateRequestB2C || DEFAULT.rateB2C,
       rateRequestB2C: tour.rateRequestB2C || DEFAULT.rateRequestB2C,
       cancellation: formatCancellation(
         tour.cancellationRequest || tour.cancellation || DEFAULT.cancellation,
@@ -1261,6 +1282,7 @@ async function goToFillPanel(tour) {
   );
   showPanel("panelFill");
   $("startFillBtn").disabled = true;
+  $("startFillBtn").dataset.loading = "true";
   $("startFillBtn").innerHTML = '<div class="spinner"></div> Loading doc…';
 
   // Fetch and parse the Google Doc to get real content
@@ -1295,9 +1317,21 @@ async function goToFillPanel(tour) {
     }
   }
 
-  $("startFillBtn").disabled = false;
+  $("startFillBtn").dataset.loading = "";
   $("startFillBtn").innerHTML =
     '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Autofill';
+
+  // Only enable if the user is on the correct tab right now
+  const REQUIRED_URL =
+    "https://trav-ui-admin-prod.azurewebsites.net/#/admin/product/add";
+  const [activeTab] = await chrome.tabs.query({
+    active: true,
+    lastFocusedWindow: true,
+  });
+  const onCorrectTab = activeTab?.url === REQUIRED_URL;
+  $("startFillBtn").disabled = !onCorrectTab;
+  const warning = $("wrongTabWarning");
+  if (warning) warning.style.display = onCorrectTab ? "none" : "flex";
 }
 
 // ── Autofill ────────────────────────────────────────────
@@ -1342,7 +1376,7 @@ async function startFill() {
     duration: selectedTour.duration || currentDocTour?.duration || "",
     rate: selectedTour.rate || DEFAULT.rate,
     rateRequest: selectedTour.rateRequest || DEFAULT.rateRequest,
-    rateB2C: selectedTour.rateB2C || DEFAULT.rateB2C,
+    rateB2C: selectedTour.rateB2C || selectedTour.rateRequestB2C || DEFAULT.rateB2C,
     rateRequestB2C: selectedTour.rateRequestB2C || DEFAULT.rateRequestB2C,
     cancellation: formatCancellation(
       selectedTour.cancellationRequest ||
@@ -1367,7 +1401,7 @@ async function startFill() {
   try {
     const [tab] = await chrome.tabs.query({
       active: true,
-      currentWindow: true,
+      lastFocusedWindow: true,
     });
     if (!tab) {
       throw new Error("No active tab found");
