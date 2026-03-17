@@ -3,8 +3,10 @@ let config = {};
 let tours = [];
 let selectedTour = null;
 let filteredTours = [];
-let currentDocTour = null; // parsed tour data from Google Doc
+let currentDocTour = null; // parsed tour data from Google Doc or pasted text
 let showReadyOnly = false;
+let manualMode = false;    // when true: skip doc fetch, accept pasted text instead
+let _refreshFillPreview = null; // callback set by goToFillPanel for parseManualDoc
 
 // Fields populated from the Google Doc (not sheet or default)
 const DOC_FIELDS = new Set([
@@ -188,6 +190,16 @@ async function initApp() {
 
   config = await loadConfig();
 
+  // Restore toggle states
+  if (config.showReadyOnly) {
+    showReadyOnly = true;
+    $("readyOnlyToggle").checked = true;
+  }
+  if (config.manualMode) {
+    manualMode = true;
+    $("manualModeToggle").checked = true;
+  }
+
   // Restore column inputs (always, so new devices get defaults pre-filled)
   const cols = [
     ["colTitle", "F"],
@@ -277,13 +289,26 @@ async function initApp() {
   );
   $("readyOnlyToggle").addEventListener("change", (e) => {
     showReadyOnly = e.target.checked;
+    autoSaveConfig();
     filterTours($("searchInput").value);
   });
+  $("manualModeToggle").addEventListener("change", (e) => {
+    manualMode = e.target.checked;
+    autoSaveConfig();
+  });
+  $("parseManualDocBtn").addEventListener("click", parseManualDoc);
   $("refreshBtn").addEventListener("click", () => loadTours(true));
   $("selectFillBtn").addEventListener("click", () => {
     if (selectedTour) goToFillPanel(selectedTour);
   });
-  $("backBtn").addEventListener("click", () => showPanel("panelList"));
+  $("backBtn").addEventListener("click", () => {
+    // Clear manual doc state so the textarea is fresh for the next tour
+    const textarea = $("manualDocText");
+    if (textarea) textarea.value = "";
+    currentDocTour = null;
+    _refreshFillPreview = null;
+    showPanel("panelList");
+  });
   $("startFillBtn").addEventListener("click", startFill);
 
   $("tourList").addEventListener("click", (e) => {
@@ -385,6 +410,8 @@ function buildConfig() {
     colExtraHourRequestB2C: col("colExtraHourRequestB2C") || "AQ",
     colMaxPax: col("colMaxPax") || "O",
     colReadyForUpload: col("colReadyForUpload") || "BN",
+    showReadyOnly,
+    manualMode,
   };
 }
 
@@ -1160,6 +1187,9 @@ function mergeDocData(fillData) {
 async function goToFillPanel(tour) {
   currentDocTour = null;
 
+  // Reset any leftover styling from a previous completed fill
+  $("startFillBtn").style.opacity = "";
+
   const _now = new Date();
   const _end = new Date(_now);
   _end.setFullYear(_end.getFullYear() + 2);
@@ -1275,53 +1305,101 @@ async function goToFillPanel(tour) {
     }).join("");
   }
 
-  // Show the panel immediately with default/sheet data while doc loads
-  renderPreview(
-    buildFillData(),
-    tour.docUrl ? { text: "fetching doc…", color: "var(--warning)" } : null,
-  );
-  showPanel("panelFill");
-  $("startFillBtn").disabled = true;
-  $("startFillBtn").dataset.loading = "true";
-  $("startFillBtn").innerHTML = '<div class="spinner"></div> Loading doc…';
+  // Store a callback so parseManualDoc() can refresh the preview after parsing
+  _refreshFillPreview = () =>
+    renderPreview(buildFillData(), { text: "✓ parsed", color: "var(--success)" });
 
-  // Fetch and parse the Google Doc to get real content
-  if (tour.docUrl) {
-    try {
-      const docJson = await fetchGoogleDoc(tour.docUrl);
-      if (docJson) {
-        const allTours = parseParisDoc(docJson);
-        currentDocTour = findMatchingDocTour(allTours, tour.title);
-        if (currentDocTour) {
-          renderPreview(buildFillData(), {
-            text: "✓ doc parsed",
-            color: "var(--success)",
-          });
-        } else {
-          renderPreview(buildFillData(), {
-            text: "title not found in doc",
-            color: "var(--warning)",
-          });
-          showToast(
-            "Tour title not found in doc — using default data for doc fields",
-            "info",
-          );
+  const manualDocArea = $("manualDocArea");
+
+  if (manualMode) {
+    // ── Manual mode: skip doc fetch, show paste textarea ──
+    if (manualDocArea) manualDocArea.classList.add("visible");
+    renderPreview(buildFillData(), { text: "manual mode", color: "var(--muted)" });
+    showPanel("panelFill");
+    $("startFillBtn").dataset.loading = "";
+    $("startFillBtn").innerHTML =
+      '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Autofill';
+  } else {
+    // ── Normal mode: hide textarea, fetch Google Doc ──
+    if (manualDocArea) manualDocArea.classList.remove("visible");
+    renderPreview(
+      buildFillData(),
+      tour.docUrl ? { text: "fetching doc…", color: "var(--warning)" } : null,
+    );
+    showPanel("panelFill");
+    $("startFillBtn").disabled = true;
+    $("startFillBtn").dataset.loading = "true";
+    $("startFillBtn").innerHTML = '<div class="spinner"></div> Loading doc…';
+
+    if (tour.docUrl) {
+      try {
+        const docJson = await fetchGoogleDoc(tour.docUrl);
+        if (docJson) {
+          const allTours = parseParisDoc(docJson);
+          currentDocTour = findMatchingDocTour(allTours, tour.title);
+          if (currentDocTour) {
+            renderPreview(buildFillData(), {
+              text: "✓ doc parsed",
+              color: "var(--success)",
+            });
+          } else {
+            renderPreview(buildFillData(), {
+              text: "title not found in doc",
+              color: "var(--warning)",
+            });
+            showToast(
+              "Tour title not found in doc — using default data for doc fields",
+              "info",
+            );
+          }
         }
+      } catch (e) {
+        console.warn("[TourExt] Doc fetch/parse failed:", e.message);
+        renderPreview(buildFillData(), {
+          text: `doc fetch failed: ${e.message}`,
+          color: "var(--danger)",
+        });
       }
-    } catch (e) {
-      console.warn("[TourExt] Doc fetch/parse failed:", e.message);
-      renderPreview(buildFillData(), {
-        text: `doc fetch failed: ${e.message}`,
-        color: "var(--danger)",
-      });
     }
+
+    $("startFillBtn").dataset.loading = "";
+    $("startFillBtn").innerHTML =
+      '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Autofill';
   }
 
-  $("startFillBtn").dataset.loading = "";
-  $("startFillBtn").innerHTML =
-    '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Autofill';
+  const REQUIRED_URL =
+    "https://trav-ui-admin-prod.azurewebsites.net/#/admin/product/add";
 
-  // Only enable if the user is on the correct tab right now
+  if (manualMode) {
+    // In manual mode keep button disabled until the user parses content
+    $("startFillBtn").disabled = true;
+    const warning = $("wrongTabWarning");
+    if (warning) warning.style.display = "none";
+  } else {
+    // Only enable Start Autofill if the user is on the correct tab right now
+    const [activeTab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
+    const onCorrectTab = activeTab?.url === REQUIRED_URL;
+    $("startFillBtn").disabled = !onCorrectTab;
+    const warning = $("wrongTabWarning");
+    if (warning) warning.style.display = onCorrectTab ? "none" : "flex";
+  }
+}
+
+// ── Manual doc parser ───────────────────────────────────
+async function parseManualDoc() {
+  const text = $("manualDocText")?.value || "";
+  if (!text.trim()) {
+    showToast("Paste tour content before parsing", "error");
+    return;
+  }
+  currentDocTour = parsePlainTextTour(text);
+  if (_refreshFillPreview) _refreshFillPreview();
+  showToast("Tour content parsed", "success");
+
+  // Now enable Start Autofill based on whether the user is on the correct tab
   const REQUIRED_URL =
     "https://trav-ui-admin-prod.azurewebsites.net/#/admin/product/add";
   const [activeTab] = await chrome.tabs.query({
