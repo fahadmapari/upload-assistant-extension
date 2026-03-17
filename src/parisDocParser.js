@@ -20,7 +20,9 @@ function paragraphElements(paragraph) {
       bold: !!tr.textStyle?.bold,
       // Do NOT strip \n here — preserve soft line breaks between runs.
       // paragraphText() strips only the final trailing \n.
-      text: tr.content ?? "",
+      // Normalize \u000b (Shift+Enter soft line break in Google Docs API) to \n
+      // so splitSoftBreaks() and all downstream code treats both as line separators.
+      text: (tr.content ?? "").replace(/\u000b/g, "\n"),
     };
   });
 }

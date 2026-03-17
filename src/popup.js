@@ -34,11 +34,7 @@ const DEFAULT = {
     "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Slovak", "Slovenian",
     "Spanish", "Swedish", "Taiwanese", "Thai", "Turkish", "Ukranian", "Vietnamese",
   ],
-  longitude: "12.4922",
-  latitude: "41.8902",
-  meetingPoint: "Colosseum main entrance",
   pickupInstructions: "",
-  endPoint: "Roman Forum exit",
   tags: "Walk",
 
   startTime: "09:00",
