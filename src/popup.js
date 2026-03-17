@@ -178,12 +178,22 @@ async function initApp() {
     loadTours(false);
   }
 
+  loadUserEmail();
+
   $("settingsBtn").addEventListener("click", () => {
     if (tours.length) $("setupCloseBtn").style.display = "flex";
+    loadUserEmail();
     showPanel("panelSetup");
   });
   $("setupCloseBtn").addEventListener("click", () => showPanel("panelList"));
   $("saveConfigBtn").addEventListener("click", saveAndLoad);
+  $("signOutBtn").addEventListener("click", signOut);
+  $("changeAccountBtn").addEventListener("click", changeAccount);
+  $("loginNoticeBtn").addEventListener("click", () => {
+    if (tours.length) $("setupCloseBtn").style.display = "flex";
+    loadUserEmail();
+    showPanel("panelSetup");
+  });
 
   // Auto-save config on any input change (no fetch)
   [
@@ -394,6 +404,69 @@ function updateConfigBar() {
   $("configSheetInfo").textContent = `${name}  ·  ${tab}`;
   $("configConnStatus").textContent = "● connected";
   $("configConnStatus").className = "connected";
+}
+
+// ── Account info ───────────────────────────────────────
+async function loadUserEmail() {
+  const el = $("accountEmail");
+  if (!el) return;
+  try {
+    const token = await getOAuthToken(false);
+    if (!token) { el.textContent = "Not signed in"; setAccountButtons(false); return; }
+    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) { el.textContent = "Unknown account"; setAccountButtons(false); return; }
+    const data = await res.json();
+    el.textContent = data.email || data.sub || "Unknown account";
+    setAccountButtons(true);
+  } catch {
+    el.textContent = "Not signed in";
+    setAccountButtons(false);
+  }
+}
+
+function setAccountButtons(signedIn) {
+  const changeBtn = $("changeAccountBtn");
+  if (changeBtn) changeBtn.textContent = signedIn ? "Change" : "Login";
+  const signOutBtn = $("signOutBtn");
+  if (signOutBtn) signOutBtn.style.display = signedIn ? "" : "none";
+  const notice = $("loginNotice");
+  if (notice) notice.style.display = signedIn ? "none" : "flex";
+}
+
+async function signOut() {
+  try {
+    const token = await getOAuthToken(false);
+    if (token) {
+      await removeCachedToken(token);
+      // Revoke the token with Google so a fresh auth prompt appears next time
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: "POST" }).catch(() => {});
+    }
+  } catch { /* ignore */ }
+  const el = $("accountEmail");
+  if (el) el.textContent = "Not signed in";
+  setAccountButtons(false);
+  showToast("Signed out", "success");
+}
+
+async function changeAccount() {
+  try {
+    const token = await getOAuthToken(false);
+    if (token) {
+      await removeCachedToken(token);
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: "POST" }).catch(() => {});
+    }
+  } catch { /* ignore */ }
+  // Trigger a fresh interactive login
+  try {
+    await getOAuthToken(true);
+    await loadUserEmail();
+    showToast("Account changed", "success");
+  } catch {
+    const el = $("accountEmail");
+    if (el) el.textContent = "Not signed in";
+  }
 }
 
 // ── Tour cache ─────────────────────────────────────────

@@ -958,6 +958,18 @@
           Back to tours
         </button>
 
+        <div class="col-section-label">Account</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--muted-fg)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="accountEmail" style="font-size:11.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading…</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn btn-secondary" id="changeAccountBtn" style="height:28px;padding:0 10px;font-size:11px;" title="Sign in with a different account">Change</button>
+            <button class="btn btn-danger" id="signOutBtn" style="height:28px;padding:0 10px;font-size:11px;" title="Sign out of Google account">Sign out</button>
+          </div>
+        </div>
+
         <div class="col-section-label">Connection</div>
 
         <div class="field-group">
@@ -1170,6 +1182,14 @@
 
     <!-- ══ PANEL: Tour List ══ -->
     <div class="panel" id="panelList">
+      <div id="loginNotice" style="display:none;margin:12px 16px 0;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:var(--radius);padding:10px 12px;display:none;align-items:flex-start;gap:10px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:500;color:#f59e0b;margin-bottom:3px;">Google account not connected</div>
+          <div style="font-size:11px;color:var(--muted-fg);line-height:1.5;">You need to sign in to load tours from your sheet. Go to <strong style="color:var(--text-dim)">Settings → Account</strong> and click <strong style="color:var(--text-dim)">Login</strong>.</div>
+          <button id="loginNoticeBtn" style="margin-top:8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border-radius:4px;cursor:pointer;transition:background 0.15s;">Open Settings</button>
+        </div>
+      </div>
       <div class="tour-body">
         <!-- Tab bar -->
         <div class="list-tabs">
