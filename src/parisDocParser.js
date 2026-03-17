@@ -289,8 +289,9 @@ function parseSection(paragraphs) {
   tour.title = paragraphText(paragraphs[0]).trim();
 
   const descLines = [];
-  let listField   = null;
-  let inDesc      = true;
+  let listField         = null;
+  let inDesc            = true;
+  let pendingInlineField = null; // field name waiting for a value on the next line
 
   const addToList = (fieldName, text) => {
     for (const line of splitSoftBreaks(text)) {
@@ -308,8 +309,17 @@ function parseSection(paragraphs) {
     const hasBold = paragraphHasBold(para);
     const isHeadingLike = HEADING_LIKE_STYLES.has(style);
 
-    // Skip empty lines inside list sections
-    if (!text && listField) continue;
+    // Skip empty lines inside list sections or while waiting for an inline field value
+    if (!text && (listField || pendingInlineField)) continue;
+
+    // If we're waiting for a value for an inline field, capture the next non-empty line
+    if (pendingInlineField && text) {
+      if (!isNoiseLine(text) && !isReviewFlagText(text) && !isSeparator(text)) {
+        tour[pendingInlineField] = text.split("\n")[0].trim();
+      }
+      pendingInlineField = null;
+      continue;
+    }
 
     // Review flags — skip regardless of style
     if (isReviewFlagParagraph(para)) { listField = null; inDesc = true; continue; }
@@ -361,10 +371,16 @@ function parseSection(paragraphs) {
       const inlineMatch = INLINE_FIELD_PATTERNS.find(([re]) => re.test(firstLine));
       if (inlineMatch) {
         const [pattern, fieldName] = inlineMatch;
-        tour[fieldName] = firstLine.replace(pattern, "").replace(/^[\s:]+/, "").trim()
-                       || firstLine.split(/:\s*/)[1]?.trim()
-                       || "";
+        const inlineValue = firstLine.replace(pattern, "").replace(/^[\s:]+/, "").trim()
+                         || firstLine.split(/:\s*/)[1]?.trim()
+                         || "";
         inDesc = false; listField = null;
+        if (inlineValue) {
+          tour[fieldName] = inlineValue;
+        } else {
+          // Value might be on the next line (after empty lines) — wait for it
+          pendingInlineField = fieldName;
+        }
         continue;
       }
     }
