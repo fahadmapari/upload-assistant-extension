@@ -232,11 +232,6 @@ async function initApp() {
     if (card) selectTour(parseInt(card.dataset.row));
   });
 
-  $("uploadsList").addEventListener("click", (e) => {
-    const card = e.target.closest(".tour-card");
-    if (card) selectTour(parseInt(card.dataset.row));
-  });
-
   $("tabAllTours").addEventListener("click", () => switchListTab("all"));
   $("tabMyUploads").addEventListener("click", () => switchListTab("uploads"));
 }
@@ -246,7 +241,10 @@ function switchListTab(tab) {
   $("tabMyUploads").classList.toggle("active", tab === "uploads");
   $("allToursView").style.display = tab === "all" ? "" : "none";
   $("myUploadsView").style.display = tab === "uploads" ? "" : "none";
-  if (tab === "uploads") renderUploadsList();
+  if (tab === "uploads") {
+    deselectTour();
+    renderUploadsList();
+  }
 }
 
 // ── Config ─────────────────────────────────────────────
@@ -737,7 +735,18 @@ function renderVisible() {
   vItems.innerHTML = vData.slice(start, end + 1).map(tourCardHTML).join("");
 }
 
+function deselectTour() {
+  selectedTour = null;
+  document.querySelectorAll(".tour-card").forEach((c) => c.classList.remove("selected"));
+  $("selectFillBtn").disabled = true;
+  $("selectFillBtn").textContent = "Select a tour →";
+}
+
 function selectTour(rowNum) {
+  if (selectedTour?.rowNum === rowNum) {
+    deselectTour();
+    return;
+  }
   selectedTour = tours.find((t) => t.rowNum === rowNum);
   if (!selectedTour) {
     console.error("[TourExt] selectTour: no tour found for rowNum", rowNum);
