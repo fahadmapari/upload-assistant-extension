@@ -16,6 +16,7 @@ const JS_FILES = [
   "src/popup.js",
   "src/injected.js",
   "src/parisDocParser.js",
+  "src/plainTextParser.js",
   "src/license.js",
 ];
 
