@@ -8,9 +8,16 @@ let showReadyOnly = false;
 
 // Fields populated from the Google Doc (not sheet or default)
 const DOC_FIELDS = new Set([
-  "description", "willSee", "willLearn",
-  "included", "notIncluded", "mandatoryInfo",
-  "meetingPoint", "endPoint", "longitude", "latitude",
+  "description",
+  "willSee",
+  "willLearn",
+  "included",
+  "notIncluded",
+  "mandatoryInfo",
+  "meetingPoint",
+  "endPoint",
+  "longitude",
+  "latitude",
 ]);
 
 const $ = (id) => document.getElementById(id);
@@ -19,7 +26,6 @@ const $ = (id) => document.getElementById(id);
 
 // ── Default data (used for fields not yet coming from sheet) ─
 const DEFAULT = {
-
   activityType: "City Tours",
   subType: "Walking Tours",
   activityFor: "All",
@@ -27,25 +33,61 @@ const DEFAULT = {
   noOfPax: "15",
   guideLanguageInstant: "English",
   guideLanguageRequest: [
-    "Arabic", "Belarusian", "Bosnian", "Bulgarian", "Cantonese", "Chinese Mandarin",
-    "Croatian", "Czech", "Danish", "Dutch", "Estonian", "Finnish", "French", "German",
-    "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian",
-    "Japanese", "Korean", "Latvian", "Lithuanian", "Maltese", "Norwegian", "Persian",
-    "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Slovak", "Slovenian",
-    "Spanish", "Swedish", "Taiwanese", "Thai", "Turkish", "Ukranian", "Vietnamese",
+    "Arabic",
+    "Belarusian",
+    "Bosnian",
+    "Bulgarian",
+    "Cantonese",
+    "Chinese Mandarin",
+    "Croatian",
+    "Czech",
+    "Danish",
+    "Dutch",
+    "Estonian",
+    "Finnish",
+    "French",
+    "German",
+    "Greek",
+    "Hebrew",
+    "Hindi",
+    "Hungarian",
+    "Icelandic",
+    "Indonesian",
+    "Italian",
+    "Japanese",
+    "Korean",
+    "Latvian",
+    "Lithuanian",
+    "Maltese",
+    "Norwegian",
+    "Persian",
+    "Polish",
+    "Portuguese",
+    "Romanian",
+    "Russian",
+    "Serbian",
+    "Slovak",
+    "Slovenian",
+    "Spanish",
+    "Swedish",
+    "Taiwanese",
+    "Thai",
+    "Turkish",
+    "Ukranian",
+    "Vietnamese",
   ],
   pickupInstructions: "",
   tags: "Walk",
 
   startTime: "09:00",
-  endTime: "13:00",
+  endTime: "22:00",
 };
 
 // ── Init ───────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
-  const licGate  = document.getElementById("panelLicense");
+  const licGate = document.getElementById("panelLicense");
   const licInput = document.getElementById("licenseKeyInput");
-  const licBtn   = document.getElementById("licenseActivateBtn");
+  const licBtn = document.getElementById("licenseActivateBtn");
   const licError = document.getElementById("licenseError");
 
   // Attach the click handler FIRST — before any async work
@@ -64,7 +106,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const result = await window.LicenseManager.activateLicense(key);
       if (result.ok) {
-        chrome.runtime.sendMessage({ type: "LICENSE_ACTIVATED" }, () => void chrome.runtime.lastError);
+        chrome.runtime.sendMessage(
+          { type: "LICENSE_ACTIVATED" },
+          () => void chrome.runtime.lastError,
+        );
         licGate.classList.add("hidden");
         initApp();
       } else {
@@ -101,13 +146,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Show a checking state — don't force key re-entry until we know the key is actually invalid
     licBtn.disabled = true;
     licInput.disabled = true;
-    licBtn.innerHTML = '<span class="license-spinner"></span> Checking license…';
+    licBtn.innerHTML =
+      '<span class="license-spinner"></span> Checking license…';
 
     try {
-      const reVerifyResult = await window.LicenseManager.silentReVerify(licResult.key);
+      const reVerifyResult = await window.LicenseManager.silentReVerify(
+        licResult.key,
+      );
       if (reVerifyResult === true) {
         // Key is still valid — schedule next alarm and go straight to the app
-        chrome.runtime.sendMessage({ type: "LICENSE_ACTIVATED" }, () => void chrome.runtime.lastError);
+        chrome.runtime.sendMessage(
+          { type: "LICENSE_ACTIVATED" },
+          () => void chrome.runtime.lastError,
+        );
         licGate.classList.add("hidden");
         initApp();
       } else {
@@ -116,7 +167,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         licInput.disabled = false;
         licBtn.textContent = "Activate";
         if (reVerifyResult === false) {
-          licError.textContent = "Your license key is no longer valid. Please enter a new key.";
+          licError.textContent =
+            "Your license key is no longer valid. Please enter a new key.";
         }
         // null (offline): gate shows with empty error — user can try entering the key
       }
@@ -165,7 +217,7 @@ async function initApp() {
   });
 
   if (config.sheetId) {
-    $("sheetId").value  = config.sheetId;
+    $("sheetId").value = config.sheetId;
     $("sheetTab").value = config.sheetTab || "Sheet1";
     if (config.apiKey) $("apiKey").value = config.apiKey; // legacy field
     showPanel("panelList");
@@ -260,7 +312,10 @@ function loadConfig() {
   return new Promise((resolve) => {
     chrome.storage.local.get(["tourExtConfig"], (r) => {
       if (chrome.runtime.lastError) {
-        console.error("[TourExt] loadConfig error:", chrome.runtime.lastError.message);
+        console.error(
+          "[TourExt] loadConfig error:",
+          chrome.runtime.lastError.message,
+        );
         resolve({});
       } else {
         resolve(r.tourExtConfig || {});
@@ -273,7 +328,10 @@ function saveConfig(cfg) {
   return new Promise((resolve) => {
     chrome.storage.local.set({ tourExtConfig: cfg }, () => {
       if (chrome.runtime.lastError) {
-        console.error("[TourExt] saveConfig error:", chrome.runtime.lastError.message);
+        console.error(
+          "[TourExt] saveConfig error:",
+          chrome.runtime.lastError.message,
+        );
       }
       resolve();
     });
@@ -355,23 +413,28 @@ function getOAuthToken(interactive = false) {
 }
 
 function removeCachedToken(token) {
-  return new Promise(resolve => chrome.identity.removeCachedAuthToken({ token }, () => {
-    if (chrome.runtime.lastError) {
-      console.warn("[TourExt] removeCachedAuthToken error:", chrome.runtime.lastError.message);
-    }
-    resolve();
-  }));
+  return new Promise((resolve) =>
+    chrome.identity.removeCachedAuthToken({ token }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn(
+          "[TourExt] removeCachedAuthToken error:",
+          chrome.runtime.lastError.message,
+        );
+      }
+      resolve();
+    }),
+  );
 }
 
 // Fetch with automatic token-refresh on 401/403 (handles stale/insufficient-scope tokens)
 async function authedFetch(url, interactive = true) {
   let token = await getOAuthToken(interactive);
-  let res   = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
 
   if (res.status === 401 || res.status === 403) {
     await removeCachedToken(token);
     token = await getOAuthToken(true); // force fresh interactive auth with current scopes
-    res   = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   }
 
   return res;
@@ -408,11 +471,19 @@ async function loadUserEmail() {
   if (!el) return;
   try {
     const token = await getOAuthToken(false);
-    if (!token) { el.textContent = "Not signed in"; setAccountButtons(false); return; }
+    if (!token) {
+      el.textContent = "Not signed in";
+      setAccountButtons(false);
+      return;
+    }
     const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) { el.textContent = "Unknown account"; setAccountButtons(false); return; }
+    if (!res.ok) {
+      el.textContent = "Unknown account";
+      setAccountButtons(false);
+      return;
+    }
     const data = await res.json();
     el.textContent = data.email || data.sub || "Unknown account";
     setAccountButtons(true);
@@ -437,9 +508,13 @@ async function signOut() {
     if (token) {
       await removeCachedToken(token);
       // Revoke the token with Google so a fresh auth prompt appears next time
-      await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: "POST" }).catch(() => {});
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, {
+        method: "POST",
+      }).catch(() => {});
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   const el = $("accountEmail");
   if (el) el.textContent = "Not signed in";
   setAccountButtons(false);
@@ -451,9 +526,13 @@ async function changeAccount() {
     const token = await getOAuthToken(false);
     if (token) {
       await removeCachedToken(token);
-      await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: "POST" }).catch(() => {});
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, {
+        method: "POST",
+      }).catch(() => {});
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   // Trigger a fresh interactive login
   try {
     await getOAuthToken(true);
@@ -470,26 +549,44 @@ const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 function saveCachedTours(data) {
   return new Promise((resolve) =>
-    chrome.storage.local.set({ tourExtCache: { data, savedAt: Date.now() } }, () => {
-      if (chrome.runtime.lastError) {
-        console.error("[TourExt] saveCachedTours error:", chrome.runtime.lastError.message);
-      }
-      resolve();
-    }),
+    chrome.storage.local.set(
+      { tourExtCache: { data, savedAt: Date.now() } },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "[TourExt] saveCachedTours error:",
+            chrome.runtime.lastError.message,
+          );
+        }
+        resolve();
+      },
+    ),
   );
 }
 function loadCachedTours() {
   return new Promise((resolve) =>
     chrome.storage.local.get(["tourExtCache"], (r) => {
       if (chrome.runtime.lastError) {
-        console.error("[TourExt] loadCachedTours error:", chrome.runtime.lastError.message);
+        console.error(
+          "[TourExt] loadCachedTours error:",
+          chrome.runtime.lastError.message,
+        );
         resolve(null);
       } else {
         const entry = r.tourExtCache;
-        if (!entry) { resolve(null); return; }
+        if (!entry) {
+          resolve(null);
+          return;
+        }
         // Support legacy cache entries that stored the array directly
-        if (Array.isArray(entry)) { resolve(null); return; }
-        if (Date.now() - entry.savedAt > CACHE_TTL_MS) { resolve(null); return; }
+        if (Array.isArray(entry)) {
+          resolve(null);
+          return;
+        }
+        if (Date.now() - entry.savedAt > CACHE_TTL_MS) {
+          resolve(null);
+          return;
+        }
         resolve(entry.data || null);
       }
     }),
@@ -498,7 +595,8 @@ function loadCachedTours() {
 
 // ── Upload records ─────────────────────────────────────
 async function saveUploadRecord(tour) {
-  const { tourExtUploads = [] } = await chrome.storage.local.get("tourExtUploads");
+  const { tourExtUploads = [] } =
+    await chrome.storage.local.get("tourExtUploads");
   const idx = tourExtUploads.findIndex((u) => u.rowNum === tour.rowNum);
   const record = {
     rowNum: tour.rowNum,
@@ -517,7 +615,8 @@ async function saveUploadRecord(tour) {
 }
 
 async function loadUploadRecords() {
-  const { tourExtUploads = [] } = await chrome.storage.local.get("tourExtUploads");
+  const { tourExtUploads = [] } =
+    await chrome.storage.local.get("tourExtUploads");
   return tourExtUploads;
 }
 
@@ -530,7 +629,7 @@ function uploadCardHTML(u) {
     <div class="tour-card-meta">
       <span class="tag">Row ${u.rowNum}</span>
       ${u.country ? `<span class="tag green">${u.country}</span>` : ""}
-      ${u.city    ? `<span class="tag green">${u.city}</span>`    : ""}
+      ${u.city ? `<span class="tag green">${u.city}</span>` : ""}
       <span class="tag blue">Uploaded ${dateStr}</span>
     </div>
   </div>`;
@@ -554,11 +653,14 @@ async function renderUploadsList() {
 function showSkeletonLoader(count = 6) {
   const container = $("tourList");
   container.onscroll = null;
-  container.innerHTML = Array.from({ length: count }, () => `
+  container.innerHTML = Array.from(
+    { length: count },
+    () => `
     <div class="skeleton-card">
       <div class="skeleton-line skeleton-title"></div>
       <div class="skeleton-line skeleton-meta"></div>
-    </div>`).join("");
+    </div>`,
+  ).join("");
 }
 
 // ── Google Sheets fetch ────────────────────────────────
@@ -596,10 +698,16 @@ async function loadTours(forceFresh = false) {
       let errMsg = `HTTP ${res.status}`;
       try {
         const err = await res.json();
-        console.error("[TourExt] API error response:", JSON.stringify(err, null, 2));
+        console.error(
+          "[TourExt] API error response:",
+          JSON.stringify(err, null, 2),
+        );
         errMsg = err.error?.message || errMsg;
       } catch (jsonErr) {
-        console.error("[TourExt] Could not parse error response body:", jsonErr.message);
+        console.error(
+          "[TourExt] Could not parse error response body:",
+          jsonErr.message,
+        );
       }
       throw new Error(errMsg);
     }
@@ -635,13 +743,23 @@ async function loadTours(forceFresh = false) {
         });
         // Index 0 is the header row — shift so index 0 = first data row
         titleHyperlinks = titleHyperlinks.slice(1);
-        console.log("[TourExt] Hyperlinks fetched:", titleHyperlinks.filter(Boolean).length);
+        console.log(
+          "[TourExt] Hyperlinks fetched:",
+          titleHyperlinks.filter(Boolean).length,
+        );
       } else {
         const errText = await hlRes.text();
-        console.warn("[TourExt] Hyperlink fetch failed:", hlRes.status, errText);
+        console.warn(
+          "[TourExt] Hyperlink fetch failed:",
+          hlRes.status,
+          errText,
+        );
       }
     } catch (hlErr) {
-      console.warn("[TourExt] Could not fetch title hyperlinks:", hlErr.message);
+      console.warn(
+        "[TourExt] Could not fetch title hyperlinks:",
+        hlErr.message,
+      );
     }
 
     const headers = rows[0].map((h) => h.toLowerCase().trim());
@@ -659,7 +777,12 @@ async function loadTours(forceFresh = false) {
     setStatus("ready");
   } catch (e) {
     console.error("[TourExt] Sheet fetch failed:", e.message);
-    console.error("[TourExt] Config — sheetId:", config.sheetId, "| sheetTab:", config.sheetTab);
+    console.error(
+      "[TourExt] Config — sheetId:",
+      config.sheetId,
+      "| sheetTab:",
+      config.sheetTab,
+    );
     $("tourCountLabel").textContent = "Failed to load";
     showToast(`Error: ${e.message}`, "error");
     setStatus("error");
@@ -743,9 +866,9 @@ function colLetterToIndex(letters) {
 
 // ── Virtual tour list ──────────────────────────────────
 // Row height = card padding(20) + title(18) + meta margin(4) + meta(16) + inter-card gap(6) = 64px
-const V_ROW    = 64;
+const V_ROW = 64;
 const V_OVERSCAN = 4;
-let vData      = [];
+let vData = [];
 let vPrevStart = -1;
 
 function tourCardHTML(t) {
@@ -755,8 +878,8 @@ function tourCardHTML(t) {
     <div class="tour-card-meta">
       <span class="tag">Row ${t.rowNum}</span>
       ${t.country ? `<span class="tag green">${t.country}</span>` : ""}
-      ${t.city    ? `<span class="tag green">${t.city}</span>`    : ""}
-      ${t.docUrl  ? `<span class="tag blue">Doc linked</span>`    : `<span class="tag">No doc</span>`}
+      ${t.city ? `<span class="tag green">${t.city}</span>` : ""}
+      ${t.docUrl ? `<span class="tag blue">Doc linked</span>` : `<span class="tag">No doc</span>`}
     </div>
   </div>`;
 }
@@ -794,21 +917,29 @@ function renderVisible() {
   if (!vData.length || !vItems) return;
 
   const scrollTop = container.scrollTop;
-  const viewH     = container.clientHeight || 280;
+  const viewH = container.clientHeight || 280;
 
   const start = Math.max(0, Math.floor(scrollTop / V_ROW) - V_OVERSCAN);
-  const end   = Math.min(vData.length - 1, Math.ceil((scrollTop + viewH) / V_ROW) + V_OVERSCAN - 1);
+  const end = Math.min(
+    vData.length - 1,
+    Math.ceil((scrollTop + viewH) / V_ROW) + V_OVERSCAN - 1,
+  );
 
   if (start === vPrevStart) return;
   vPrevStart = start;
 
   vItems.style.top = start * V_ROW + "px";
-  vItems.innerHTML = vData.slice(start, end + 1).map(tourCardHTML).join("");
+  vItems.innerHTML = vData
+    .slice(start, end + 1)
+    .map(tourCardHTML)
+    .join("");
 }
 
 function deselectTour() {
   selectedTour = null;
-  document.querySelectorAll(".tour-card").forEach((c) => c.classList.remove("selected"));
+  document
+    .querySelectorAll(".tour-card")
+    .forEach((c) => c.classList.remove("selected"));
   $("selectFillBtn").disabled = true;
   $("selectFillBtn").textContent = "Select a tour →";
 }
@@ -852,13 +983,19 @@ function filterTours(query) {
 async function fetchGoogleDoc(docUrl) {
   const match = docUrl && docUrl.match(/\/d\/([\w-]+)/);
   if (!match) {
-    console.warn("[TourExt] fetchGoogleDoc: invalid or missing doc URL:", docUrl);
+    console.warn(
+      "[TourExt] fetchGoogleDoc: invalid or missing doc URL:",
+      docUrl,
+    );
     return null;
   }
   const docId = match[1];
 
   try {
-    const res = await authedFetch(`https://docs.googleapis.com/v1/documents/${docId}`, true);
+    const res = await authedFetch(
+      `https://docs.googleapis.com/v1/documents/${docId}`,
+      true,
+    );
 
     if (!res.ok) {
       let errMsg = `Docs API ${res.status}`;
@@ -866,7 +1003,10 @@ async function fetchGoogleDoc(docUrl) {
         const err = await res.json();
         errMsg = err.error?.message || errMsg;
       } catch (jsonErr) {
-        console.error("[TourExt] fetchGoogleDoc: could not parse error response:", jsonErr.message);
+        console.error(
+          "[TourExt] fetchGoogleDoc: could not parse error response:",
+          jsonErr.message,
+        );
       }
       throw new Error(errMsg);
     }
@@ -874,7 +1014,12 @@ async function fetchGoogleDoc(docUrl) {
     // Return raw document object — caller is responsible for parsing
     return await res.json();
   } catch (e) {
-    console.error("[TourExt] fetchGoogleDoc failed for docId", docId, ":", e.message);
+    console.error(
+      "[TourExt] fetchGoogleDoc failed for docId",
+      docId,
+      ":",
+      e.message,
+    );
     throw e;
   }
 }
@@ -899,7 +1044,11 @@ const FILL_FIELDS = [
   { key: "willSee", label: "You Will See", source: "doc" },
   { key: "willLearn", label: "You Will Learn", source: "doc" },
   { key: "mandatoryInfo", label: "Mandatory Information", source: "default" },
-  { key: "recommendedInfo", label: "Recommended Information", source: "default" },
+  {
+    key: "recommendedInfo",
+    label: "Recommended Information",
+    source: "default",
+  },
   { key: "included", label: "Included", source: "doc" },
   { key: "notIncluded", label: "Not Included", source: "doc" },
   { key: "activityFor", label: "Activity For", source: "default" },
@@ -918,14 +1067,34 @@ const FILL_FIELDS = [
   { key: "longitude", label: "Longitude", source: "doc" },
   { key: "latitude", label: "Latitude", source: "doc" },
   { key: "meetingPoint", label: "Meeting Point", source: "default" },
-  { key: "pickupInstructions", label: "Pickup Instructions", source: "default" },
+  {
+    key: "pickupInstructions",
+    label: "Pickup Instructions",
+    source: "default",
+  },
   { key: "endPoint", label: "End Point", source: "default" },
   { key: "tags", label: "Tags", source: "default" },
 
-  { key: "extraHour", label: "Extra Hour Supplement (Instant)", source: "sheet" },
-  { key: "extraHourB2C", label: "Extra Hour Supplement B2C (Instant)", source: "sheet" },
-  { key: "extraHourRequest", label: "Extra Hour Supplement (On Request)", source: "sheet" },
-  { key: "extraHourRequestB2C", label: "Extra Hour Supplement B2C (On Request)", source: "sheet" },
+  {
+    key: "extraHour",
+    label: "Extra Hour Supplement (Instant)",
+    source: "sheet",
+  },
+  {
+    key: "extraHourB2C",
+    label: "Extra Hour Supplement B2C (Instant)",
+    source: "sheet",
+  },
+  {
+    key: "extraHourRequest",
+    label: "Extra Hour Supplement (On Request)",
+    source: "sheet",
+  },
+  {
+    key: "extraHourRequestB2C",
+    label: "Extra Hour Supplement B2C (On Request)",
+    source: "sheet",
+  },
   { key: "startDate", label: "Start Date", source: "default" },
   { key: "endDate", label: "End Date", source: "default" },
   { key: "startTime", label: "Start Time", source: "default" },
@@ -934,28 +1103,37 @@ const FILL_FIELDS = [
 
 // ── Doc tour matching ───────────────────────────────────
 function findMatchingDocTour(allTours, sheetTitle) {
-  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+  const norm = (s) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   const target = norm(sheetTitle);
   return (
     allTours.find((t) => norm(t.title) === target) ||
-    allTours.find((t) => norm(t.title).includes(target) || target.includes(norm(t.title)))
-  ) || null;
+    allTours.find(
+      (t) => norm(t.title).includes(target) || target.includes(norm(t.title)),
+    ) ||
+    null
+  );
 }
 
 // Merges parsed doc data into an existing fillData object (mutates in place)
 function mergeDocData(fillData) {
   if (!currentDocTour) return;
   const d = currentDocTour;
-  if (d.description)        fillData.description  = d.description;
-  if (d.youWillSee?.length) fillData.willSee       = d.youWillSee.join("\n");
-  if (d.youWillLearn?.length) fillData.willLearn   = d.youWillLearn.join("\n");
-  if (d.inclusions?.length) fillData.included      = d.inclusions.join(",\n");
-  if (d.exclusions?.length) fillData.notIncluded   = d.exclusions.join(",\n");
-  if (d.additionalInfo?.length) fillData.recommendedInfo = d.additionalInfo.join(",");
-  if (d.meetingPoint)       fillData.meetingPoint  = d.meetingPoint;
-  if (d.endLocation)        fillData.endPoint      = d.endLocation;
-  if (d.longitude)          fillData.longitude     = d.longitude;
-  if (d.latitude)           fillData.latitude      = d.latitude;
+  if (d.description) fillData.description = d.description;
+  if (d.youWillSee?.length) fillData.willSee = d.youWillSee.join("\n");
+  if (d.youWillLearn?.length) fillData.willLearn = d.youWillLearn.join("\n");
+  if (d.inclusions?.length) fillData.included = d.inclusions.join(",\n");
+  if (d.exclusions?.length) fillData.notIncluded = d.exclusions.join(",\n");
+  if (d.additionalInfo?.length)
+    fillData.recommendedInfo = d.additionalInfo.join(",");
+  if (d.meetingPoint) fillData.meetingPoint = d.meetingPoint;
+  if (d.endLocation) fillData.endPoint = d.endLocation;
+  if (d.longitude) fillData.longitude = d.longitude;
+  if (d.latitude) fillData.latitude = d.latitude;
 }
 
 async function goToFillPanel(tour) {
@@ -964,7 +1142,8 @@ async function goToFillPanel(tour) {
   const _now = new Date();
   const _end = new Date(_now);
   _end.setFullYear(_end.getFullYear() + 2);
-  const _fmt = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  const _fmt = (d) =>
+    `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
   const _durHours = parseInt((tour.duration || "").replace(/h.*/i, "")) || 0;
   const _endTime = `${String(Math.max(0, 22 - _durHours)).padStart(2, "0")}:00`;
 
@@ -973,7 +1152,11 @@ async function goToFillPanel(tour) {
       ...DEFAULT,
       title: tour.title,
       serviceType: "Guide",
-      subType: (tour.serviceType === "Driver-Guide" || /day.?trip/i.test(tour.serviceType)) ? "Driver Guide" : "Walking Tours",
+      subType:
+        tour.serviceType === "Driver-Guide" ||
+        /day.?trip/i.test(tour.serviceType)
+          ? "Driver Guide"
+          : "Walking Tours",
       noOfPax: tour.maxPax,
       country: tour.country || DEFAULT.country,
       city: tour.city || DEFAULT.city,
@@ -982,7 +1165,9 @@ async function goToFillPanel(tour) {
       rateRequest: tour.rateRequest || DEFAULT.rateRequest,
       rateB2C: tour.rateB2C || DEFAULT.rateB2C,
       rateRequestB2C: tour.rateRequestB2C || DEFAULT.rateRequestB2C,
-      cancellation: formatCancellation(tour.cancellationRequest || tour.cancellation || DEFAULT.cancellation),
+      cancellation: formatCancellation(
+        tour.cancellationRequest || tour.cancellation || DEFAULT.cancellation,
+      ),
       release: tour.releaseRequest || tour.release || DEFAULT.release,
       extraHour: tour.extraHour || null,
       extraHourB2C: tour.extraHourB2C || null,
@@ -1019,12 +1204,27 @@ async function goToFillPanel(tour) {
         const val = fillData[f.key];
         const display = Array.isArray(val)
           ? val.join(", ")
-          : (val != null && val !== "" ? String(val) : "—");
-        const src = f.source === "sheet"
-          ? "sheet"
-          : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "default");
-        const valColor = src === "sheet" ? "var(--text-dim)" : src === "doc" ? "#a5b4fc" : "var(--muted-fg)";
-        const srcColor = src === "sheet" ? "var(--success)" : src === "doc" ? "#818cf8" : "var(--muted)";
+          : val != null && val !== ""
+            ? String(val)
+            : "—";
+        const src =
+          f.source === "sheet"
+            ? "sheet"
+            : currentDocTour && DOC_FIELDS.has(f.key)
+              ? "doc"
+              : "default";
+        const valColor =
+          src === "sheet"
+            ? "var(--text-dim)"
+            : src === "doc"
+              ? "#a5b4fc"
+              : "var(--muted-fg)";
+        const srcColor =
+          src === "sheet"
+            ? "var(--success)"
+            : src === "doc"
+              ? "#818cf8"
+              : "var(--muted)";
         return `<tr>
           <td>${f.label}</td>
           <td style="color:${valColor}">${display}</td>
@@ -1034,10 +1234,18 @@ async function goToFillPanel(tour) {
       `</table>`;
 
     $("fieldsChecklist").innerHTML = FILL_FIELDS.map((f) => {
-      const src = f.source === "sheet"
-        ? "sheet"
-        : (currentDocTour && DOC_FIELDS.has(f.key) ? "doc" : "default");
-      const srcColor = src === "sheet" ? "var(--success)" : src === "doc" ? "#818cf8" : "var(--muted)";
+      const src =
+        f.source === "sheet"
+          ? "sheet"
+          : currentDocTour && DOC_FIELDS.has(f.key)
+            ? "doc"
+            : "default";
+      const srcColor =
+        src === "sheet"
+          ? "var(--success)"
+          : src === "doc"
+            ? "#818cf8"
+            : "var(--muted)";
       return `<div class="check-item" id="check-${f.key}">
         <div class="check-dot"></div>
         <span>${f.label}</span>
@@ -1047,7 +1255,10 @@ async function goToFillPanel(tour) {
   }
 
   // Show the panel immediately with default/sheet data while doc loads
-  renderPreview(buildFillData(), tour.docUrl ? { text: "fetching doc…", color: "var(--warning)" } : null);
+  renderPreview(
+    buildFillData(),
+    tour.docUrl ? { text: "fetching doc…", color: "var(--warning)" } : null,
+  );
   showPanel("panelFill");
   $("startFillBtn").disabled = true;
   $("startFillBtn").innerHTML = '<div class="spinner"></div> Loading doc…';
@@ -1060,15 +1271,27 @@ async function goToFillPanel(tour) {
         const allTours = parseParisDoc(docJson);
         currentDocTour = findMatchingDocTour(allTours, tour.title);
         if (currentDocTour) {
-          renderPreview(buildFillData(), { text: "✓ doc parsed", color: "var(--success)" });
+          renderPreview(buildFillData(), {
+            text: "✓ doc parsed",
+            color: "var(--success)",
+          });
         } else {
-          renderPreview(buildFillData(), { text: "title not found in doc", color: "var(--warning)" });
-          showToast("Tour title not found in doc — using default data for doc fields", "info");
+          renderPreview(buildFillData(), {
+            text: "title not found in doc",
+            color: "var(--warning)",
+          });
+          showToast(
+            "Tour title not found in doc — using default data for doc fields",
+            "info",
+          );
         }
       }
     } catch (e) {
       console.warn("[TourExt] Doc fetch/parse failed:", e.message);
-      renderPreview(buildFillData(), { text: `doc fetch failed: ${e.message}`, color: "var(--danger)" });
+      renderPreview(buildFillData(), {
+        text: `doc fetch failed: ${e.message}`,
+        color: "var(--danger)",
+      });
     }
   }
 
@@ -1089,10 +1312,17 @@ async function startFill() {
   const _now = new Date();
   const _end = new Date(_now);
   _end.setFullYear(_end.getFullYear() + 2);
-  const _fmt = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  const _fmt = (d) =>
+    `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 
   // Compute end time: 22:00 minus duration hours (e.g. "2h" → 20:00)
-  const _durHours = parseInt((selectedTour.duration || currentDocTour?.duration || "").replace(/h.*/i, "")) || 0;
+  const _durHours =
+    parseInt(
+      (selectedTour.duration || currentDocTour?.duration || "").replace(
+        /h.*/i,
+        "",
+      ),
+    ) || 0;
   const _endHour = Math.max(0, 22 - _durHours);
   const _endTime = `${String(_endHour).padStart(2, "0")}:00`;
 
@@ -1101,7 +1331,11 @@ async function startFill() {
     ...DEFAULT,
     title: selectedTour.title,
     serviceType: "Guide",
-    subType: (selectedTour.serviceType === "Driver-Guide" || /day.?trip/i.test(selectedTour.serviceType)) ? "Driver Guide" : "Walking Tours",
+    subType:
+      selectedTour.serviceType === "Driver-Guide" ||
+      /day.?trip/i.test(selectedTour.serviceType)
+        ? "Driver Guide"
+        : "Walking Tours",
     noOfPax: selectedTour.maxPax,
     country: selectedTour.country || DEFAULT.country,
     city: selectedTour.city || DEFAULT.city,
@@ -1110,8 +1344,13 @@ async function startFill() {
     rateRequest: selectedTour.rateRequest || DEFAULT.rateRequest,
     rateB2C: selectedTour.rateB2C || DEFAULT.rateB2C,
     rateRequestB2C: selectedTour.rateRequestB2C || DEFAULT.rateRequestB2C,
-    cancellation: formatCancellation(selectedTour.cancellationRequest || selectedTour.cancellation || DEFAULT.cancellation),
-    release: selectedTour.releaseRequest || selectedTour.release || DEFAULT.release,
+    cancellation: formatCancellation(
+      selectedTour.cancellationRequest ||
+        selectedTour.cancellation ||
+        DEFAULT.cancellation,
+    ),
+    release:
+      selectedTour.releaseRequest || selectedTour.release || DEFAULT.release,
     extraHour: selectedTour.extraHour || null,
     extraHourB2C: selectedTour.extraHourB2C || null,
     extraHourRequest: selectedTour.extraHourRequest || null,
@@ -1133,14 +1372,19 @@ async function startFill() {
     if (!tab) {
       throw new Error("No active tab found");
     }
-    const REQUIRED_URL = "https://trav-ui-admin-prod.azurewebsites.net/#/admin/product/add";
+    const REQUIRED_URL =
+      "https://trav-ui-admin-prod.azurewebsites.net/#/admin/product/add";
     if (tab.url !== REQUIRED_URL) {
-      throw new Error(`Autofill only works on the product add page.\nPlease navigate to:\n${REQUIRED_URL}`);
+      throw new Error(
+        `Autofill only works on the product add page.\nPlease navigate to:\n${REQUIRED_URL}`,
+      );
     }
     // Step 1: store tour data where the injected script can read it
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: (data) => { window.__tourExtData = data; },
+      func: (data) => {
+        window.__tourExtData = data;
+      },
       args: [fillData],
       world: "MAIN",
     });
