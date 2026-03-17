@@ -1,4 +1,3 @@
-const JavaScriptObfuscator = require("javascript-obfuscator");
 const archiver = require("archiver");
 const fs = require("fs");
 const path = require("path");
@@ -6,36 +5,19 @@ const path = require("path");
 const BUILD_DIR = path.join(__dirname, "dist");
 const ZIP_PATH = path.join(__dirname, "extension.zip");
 
-// Files/folders to include in the zip (relative to project root)
+// Files/folders to copy (relative to project root)
 const STATIC_FILES = ["manifest.json", "popup.html"];
 const STATIC_DIRS = ["icons"];
 
-// JS files to obfuscate (relative to project root)
+// JS files to copy (relative to project root)
 const JS_FILES = [
   "src/content.js",
   "src/background.js",
   "src/popup.js",
+  "src/injected.js",
   "src/parisDocParser.js",
   "src/license.js",
 ];
-
-// Obfuscator options — tweak as needed
-const OBFUSCATOR_OPTIONS = {
-  compact: true,
-  controlFlowFlattening: true,
-  controlFlowFlatteningThreshold: 0.5,
-  deadCodeInjection: false,
-  debugProtection: false,
-  disableConsoleOutput: false,
-  identifierNamesGenerator: "hexadecimal",
-  renameGlobals: false,
-  selfDefending: false,
-  stringArray: true,
-  stringArrayEncoding: ["base64"],
-  stringArrayThreshold: 0.75,
-  transformObjectKeys: false,
-  unicodeEscapeSequence: false,
-};
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -72,16 +54,13 @@ for (const dir of STATIC_DIRS) {
   console.log(`Copied dir: ${dir}/`);
 }
 
-// 4. Obfuscate JS files
+// 4. Copy JS files
 for (const file of JS_FILES) {
   const src = path.join(__dirname, file);
   const dest = path.join(BUILD_DIR, file);
   ensureDir(path.dirname(dest));
-
-  const code = fs.readFileSync(src, "utf8");
-  const result = JavaScriptObfuscator.obfuscate(code, OBFUSCATOR_OPTIONS);
-  fs.writeFileSync(dest, result.getObfuscatedCode(), "utf8");
-  console.log(`Obfuscated: ${file}`);
+  fs.copyFileSync(src, dest);
+  console.log(`Copied: ${file}`);
 }
 
 // 5. Zip dist dir
