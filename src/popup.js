@@ -231,6 +231,22 @@ async function initApp() {
     const card = e.target.closest(".tour-card");
     if (card) selectTour(parseInt(card.dataset.row));
   });
+
+  $("uploadsList").addEventListener("click", (e) => {
+    const card = e.target.closest(".tour-card");
+    if (card) selectTour(parseInt(card.dataset.row));
+  });
+
+  $("tabAllTours").addEventListener("click", () => switchListTab("all"));
+  $("tabMyUploads").addEventListener("click", () => switchListTab("uploads"));
+}
+
+function switchListTab(tab) {
+  $("tabAllTours").classList.toggle("active", tab === "all");
+  $("tabMyUploads").classList.toggle("active", tab === "uploads");
+  $("allToursView").style.display = tab === "all" ? "" : "none";
+  $("myUploadsView").style.display = tab === "uploads" ? "" : "none";
+  if (tab === "uploads") renderUploadsList();
 }
 
 // ── Config ─────────────────────────────────────────────
@@ -409,6 +425,60 @@ function loadCachedTours() {
       }
     }),
   );
+}
+
+// ── Upload records ─────────────────────────────────────
+async function saveUploadRecord(tour) {
+  const { tourExtUploads = [] } = await chrome.storage.local.get("tourExtUploads");
+  const idx = tourExtUploads.findIndex((u) => u.rowNum === tour.rowNum);
+  const record = {
+    rowNum: tour.rowNum,
+    title: tour.title,
+    country: tour.country || "",
+    city: tour.city || "",
+    docUrl: tour.docUrl || "",
+    uploadedAt: Date.now(),
+  };
+  if (idx >= 0) {
+    tourExtUploads[idx] = record; // update timestamp if re-uploaded
+  } else {
+    tourExtUploads.unshift(record); // newest first
+  }
+  await chrome.storage.local.set({ tourExtUploads });
+}
+
+async function loadUploadRecords() {
+  const { tourExtUploads = [] } = await chrome.storage.local.get("tourExtUploads");
+  return tourExtUploads;
+}
+
+function uploadCardHTML(u) {
+  const d = new Date(u.uploadedAt);
+  const dateStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  const sel = selectedTour?.rowNum === u.rowNum ? " selected" : "";
+  return `<div class="tour-card${sel}" data-row="${u.rowNum}" style="margin-bottom:6px">
+    <div class="tour-card-title">${u.title}</div>
+    <div class="tour-card-meta">
+      <span class="tag">Row ${u.rowNum}</span>
+      ${u.country ? `<span class="tag green">${u.country}</span>` : ""}
+      ${u.city    ? `<span class="tag green">${u.city}</span>`    : ""}
+      <span class="tag blue">Uploaded ${dateStr}</span>
+    </div>
+  </div>`;
+}
+
+async function renderUploadsList() {
+  const uploads = await loadUploadRecords();
+  const container = $("uploadsList");
+  if (!uploads.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📤</div>
+        No uploads yet. Tours you successfully autofill will appear here.
+      </div>`;
+    return;
+  }
+  container.innerHTML = uploads.map(uploadCardHTML).join("");
 }
 
 // ── Skeleton loader ────────────────────────────────────
@@ -1021,6 +1091,7 @@ async function startFill() {
         failCount ? "error" : "success",
       );
       setStatus("ready");
+      saveUploadRecord(selectedTour);
       $("startFillBtn").disabled = true;
       $("startFillBtn").innerHTML =
         '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polyline points="20 6 9 17 4 12" style="fill:none;stroke:currentColor;stroke-width:3"/></svg> Autofill Completed';

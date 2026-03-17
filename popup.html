@@ -214,6 +214,35 @@
         gap: 10px;
       }
 
+      /* ── List Tabs ── */
+      .list-tabs {
+        display: flex;
+        gap: 2px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: -2px;
+      }
+      .list-tab {
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--muted);
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 5px 12px 7px;
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s;
+        margin-bottom: -1px;
+        letter-spacing: 0.01em;
+      }
+      .list-tab:hover {
+        color: var(--text-dim);
+      }
+      .list-tab.active {
+        color: var(--text);
+        border-bottom-color: var(--text);
+      }
+
       .search-row {
         display: flex;
         gap: 6px;
@@ -329,8 +358,9 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
-        max-height: 360px;
+        max-height: 300px;
         overflow-y: auto;
+        margin-top: 8px;
       }
 
       .tour-card {
@@ -1134,38 +1164,58 @@
     <!-- ══ PANEL: Tour List ══ -->
     <div class="panel" id="panelList">
       <div class="tour-body">
-        <div class="search-row">
-          <input type="text" id="searchInput" placeholder="Search tours…" />
-          <button class="btn-icon" id="refreshBtn" title="Refresh">
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-          </button>
+        <!-- Tab bar -->
+        <div class="list-tabs">
+          <button class="list-tab active" id="tabAllTours">All Tours</button>
+          <button class="list-tab" id="tabMyUploads">My Uploads</button>
         </div>
-        <div class="list-meta-row">
-          <div class="section-label" id="tourCountLabel">Loading…</div>
-          <label class="ready-toggle">
-            <input type="checkbox" id="readyOnlyToggle" />
-            <span class="ready-toggle-track"><span class="ready-toggle-thumb"></span></span>
-            Ready for Upload only
-          </label>
-        </div>
-        <div class="tour-list" id="tourList">
-          <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            Loading tours from sheet…
+
+        <!-- All Tours view -->
+        <div id="allToursView">
+          <div class="search-row">
+            <input type="text" id="searchInput" placeholder="Search tours…" />
+            <button class="btn-icon" id="refreshBtn" title="Refresh">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+            </button>
+          </div>
+          <div class="list-meta-row">
+            <div class="section-label" id="tourCountLabel">Loading…</div>
+            <label class="ready-toggle">
+              <input type="checkbox" id="readyOnlyToggle" />
+              <span class="ready-toggle-track"><span class="ready-toggle-thumb"></span></span>
+              Ready for Upload only
+            </label>
+          </div>
+          <div class="tour-list" id="tourList">
+            <div class="empty-state">
+              <div class="empty-icon">📋</div>
+              Loading tours from sheet…
+            </div>
           </div>
         </div>
+
+        <!-- My Uploads view -->
+        <div id="myUploadsView" style="display:none">
+          <div class="tour-list" id="uploadsList">
+            <div class="empty-state">
+              <div class="empty-icon">📤</div>
+              No uploads yet
+            </div>
+          </div>
+        </div>
+
         <button class="btn btn-primary" id="selectFillBtn" disabled>
           Fill Selected Tour
           <svg
