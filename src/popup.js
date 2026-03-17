@@ -526,6 +526,14 @@ function cleanRate(val) {
   return cleaned || val;
 }
 
+// Extract the first number from a cancellation value and return the policy sentence
+function formatCancellation(val) {
+  if (!val) return val;
+  const match = String(val).match(/\d+/);
+  if (!match) return val;
+  return `Cancel up to ${match[0]} office days in advance for a full refund`;
+}
+
 function buildTour(headers, row, rowNum, titleHyperlink = "") {
   // Helper: get cell value by configured column letter (e.g. "A" → index 0)
   const col = (cfgKey) => {
@@ -814,7 +822,7 @@ async function goToFillPanel(tour) {
       rateRequest: tour.rateRequest || DEFAULT.rateRequest,
       rateB2C: tour.rateB2C || DEFAULT.rateB2C,
       rateRequestB2C: tour.rateRequestB2C || DEFAULT.rateRequestB2C,
-      cancellation: tour.cancellationRequest || tour.cancellation || DEFAULT.cancellation,
+      cancellation: formatCancellation(tour.cancellationRequest || tour.cancellation || DEFAULT.cancellation),
       release: tour.releaseRequest || tour.release || DEFAULT.release,
       extraHour: tour.extraHour || null,
       extraHourB2C: tour.extraHourB2C || null,
@@ -942,7 +950,7 @@ async function startFill() {
     rateRequest: selectedTour.rateRequest || DEFAULT.rateRequest,
     rateB2C: selectedTour.rateB2C || DEFAULT.rateB2C,
     rateRequestB2C: selectedTour.rateRequestB2C || DEFAULT.rateRequestB2C,
-    cancellation: selectedTour.cancellationRequest || selectedTour.cancellation || DEFAULT.cancellation,
+    cancellation: formatCancellation(selectedTour.cancellationRequest || selectedTour.cancellation || DEFAULT.cancellation),
     release: selectedTour.releaseRequest || selectedTour.release || DEFAULT.release,
     extraHour: selectedTour.extraHour || null,
     extraHourB2C: selectedTour.extraHourB2C || null,
