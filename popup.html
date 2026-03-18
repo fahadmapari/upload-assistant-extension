@@ -353,6 +353,49 @@
         border-color: var(--border-light);
       }
 
+/* ── Toggle tooltip ── */
+      .toggle-wrap {
+        position: relative;
+        display: inline-flex;
+      }
+      .toggle-wrap .toggle-tip {
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--fg);
+        font-size: 10px;
+        font-weight: 400;
+        line-height: 1.4;
+        padding: 5px 8px;
+        border-radius: 6px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s;
+        z-index: 100;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        white-space: normal;
+        width: 300px;
+      }
+      .toggle-wrap .toggle-tip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: var(--border);
+      }
+      .toggle-wrap .toggle-tip[style*="left:0"]::after {
+        left: 12px;
+        transform: none;
+      }
+      .toggle-wrap:hover .toggle-tip {
+        opacity: 1;
+      }
+
 /* ── Manual doc textarea ── */
       .manual-doc-area {
         display: none;
@@ -1279,16 +1322,22 @@
           <div class="list-meta-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
             <div class="section-label" id="tourCountLabel">Loading…</div>
             <div style="display:flex;align-items:center;gap:12px;">
-              <label class="ready-toggle" title="Skip doc fetch — paste tour text manually on the fill screen">
-                <input type="checkbox" id="manualModeToggle" />
-                <span class="ready-toggle-track"><span class="ready-toggle-thumb"></span></span>
-                Manual Mode
-              </label>
-              <label class="ready-toggle">
-                <input type="checkbox" id="readyOnlyToggle" />
-                <span class="ready-toggle-track"><span class="ready-toggle-thumb"></span></span>
-                Ready for Upload only
-              </label>
+              <span class="toggle-wrap">
+                <label class="ready-toggle">
+                  <input type="checkbox" id="manualModeToggle" />
+                  <span class="ready-toggle-track"><span class="ready-toggle-thumb"></span></span>
+                  Manual Mode
+                </label>
+                <span class="toggle-tip" style="left:0;transform:none;">Skip automatic fetching of google doc and paste tour content from google doc yourself on fill screen</span>
+              </span>
+              <span class="toggle-wrap">
+                <label class="ready-toggle">
+                  <input type="checkbox" id="readyOnlyToggle" />
+                  <span class="ready-toggle-track"><span class="ready-toggle-thumb"></span></span>
+                  Ready for Upload only
+                </label>
+                <span class="toggle-tip">Show only tours marked as ready for upload in the sheet</span>
+              </span>
             </div>
           </div>
           <div class="tour-list" id="tourList">

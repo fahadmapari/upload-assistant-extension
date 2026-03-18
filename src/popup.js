@@ -668,12 +668,20 @@ async function loadUploadRecords() {
   return tourExtUploads;
 }
 
+async function deleteUploadRecord(rowNum) {
+  const { tourExtUploads = [] } =
+    await chrome.storage.local.get("tourExtUploads");
+  const filtered = tourExtUploads.filter((u) => u.rowNum !== rowNum);
+  await chrome.storage.local.set({ tourExtUploads: filtered });
+}
+
 function uploadCardHTML(u) {
   const d = new Date(u.uploadedAt);
   const dateStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
   const sel = selectedTour?.rowNum === u.rowNum ? " selected" : "";
-  return `<div class="tour-card${sel}" data-row="${u.rowNum}" style="margin-bottom:6px">
-    <div class="tour-card-title">${u.title}</div>
+  return `<div class="tour-card${sel}" data-row="${u.rowNum}" style="margin-bottom:6px;position:relative">
+    <button class="upload-delete-btn" data-delete-row="${u.rowNum}" title="Remove from uploads" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;line-height:1;border-radius:var(--radius);font-size:14px" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+    <div class="tour-card-title" style="padding-right:24px">${u.title}</div>
     <div class="tour-card-meta">
       <span class="tag">Row ${u.rowNum}</span>
       ${u.country ? `<span class="tag green">${u.country}</span>` : ""}
@@ -695,6 +703,14 @@ async function renderUploadsList() {
     return;
   }
   container.innerHTML = uploads.map(uploadCardHTML).join("");
+  container.querySelectorAll(".upload-delete-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const rowNum = Number(btn.dataset.deleteRow);
+      await deleteUploadRecord(rowNum);
+      renderUploadsList();
+    });
+  });
 }
 
 // ── Skeleton loader ────────────────────────────────────
