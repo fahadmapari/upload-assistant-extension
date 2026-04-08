@@ -1207,8 +1207,6 @@ async function goToFillPanel(tour) {
   $("startFillBtn").style.opacity = "";
 
   const _now = new Date();
-  const _end = new Date(_now);
-  _end.setFullYear(_end.getFullYear() + 2);
   const _fmt = (d) =>
     `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
   const _durHours = parseInt((tour.duration || "").replace(/h.*/i, "")) || 0;
@@ -1241,7 +1239,7 @@ async function goToFillPanel(tour) {
       extraHourRequest: tour.extraHourRequest || null,
       extraHourRequestB2C: tour.extraHourRequestB2C || null,
       startDate: _fmt(_now),
-      endDate: _fmt(_end),
+      endDate: "12/31/2035",
       startTime: "08:00",
       endTime: _endTime,
     };
@@ -1438,8 +1436,6 @@ async function startFill() {
 
   // Compute start/end dates at fill time
   const _now = new Date();
-  const _end = new Date(_now);
-  _end.setFullYear(_end.getFullYear() + 2);
   const _fmt = (d) =>
     `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 
@@ -1484,7 +1480,7 @@ async function startFill() {
     extraHourRequest: selectedTour.extraHourRequest || null,
     extraHourRequestB2C: selectedTour.extraHourRequestB2C || null,
     startDate: _fmt(_now),
-    endDate: _fmt(_end),
+    endDate: "12/31/2035",
     startTime: "08:00",
     endTime: _endTime,
   };
