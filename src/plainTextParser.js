@@ -139,8 +139,10 @@ function parsePlainTextTour(rawText) {
   for (let i = titleIdx + 1; i < lines.length; i++) {
     const text = lines[i].trim();
 
-    // Skip blank lines while collecting list items or waiting for inline value
-    if (!text && (listField || pendingInlineField)) continue;
+    // A blank line ends the active list section (e.g. blank line after "You will see")
+    if (!text && listField) { listField = null; continue; }
+    // Skip blank lines while waiting for an inline field value
+    if (!text && pendingInlineField) continue;
 
     // Capture the value for a pending inline field on the next non-empty line
     if (pendingInlineField && text) {
