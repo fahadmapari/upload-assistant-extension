@@ -1228,7 +1228,7 @@ async function goToFillPanel(tour) {
       duration: tour.duration || currentDocTour?.duration || "",
       rate: tour.rate || DEFAULT.rate,
       rateRequest: tour.rateRequest || DEFAULT.rateRequest,
-      rateB2C: tour.rateB2C || tour.rateRequestB2C || DEFAULT.rateB2C,
+      rateB2C: tour.rateB2C || DEFAULT.rateB2C,
       rateRequestB2C: tour.rateRequestB2C || DEFAULT.rateRequestB2C,
       cancellation: formatCancellation(
         tour.cancellationRequest || tour.cancellation || DEFAULT.cancellation,
@@ -1466,7 +1466,7 @@ async function startFill() {
     duration: selectedTour.duration || currentDocTour?.duration || "",
     rate: selectedTour.rate || DEFAULT.rate,
     rateRequest: selectedTour.rateRequest || DEFAULT.rateRequest,
-    rateB2C: selectedTour.rateB2C || selectedTour.rateRequestB2C || DEFAULT.rateB2C,
+    rateB2C: selectedTour.rateB2C || DEFAULT.rateB2C,
     rateRequestB2C: selectedTour.rateRequestB2C || DEFAULT.rateRequestB2C,
     cancellation: formatCancellation(
       selectedTour.cancellationRequest ||
