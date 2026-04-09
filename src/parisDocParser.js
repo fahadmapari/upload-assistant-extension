@@ -309,8 +309,10 @@ function parseSection(paragraphs) {
     const hasBold = paragraphHasBold(para);
     const isHeadingLike = HEADING_LIKE_STYLES.has(style);
 
-    // Skip empty lines inside list sections or while waiting for an inline field value
-    if (!text && (listField || pendingInlineField)) continue;
+    // A blank paragraph ends the active list section (e.g. blank line after "You will see")
+    if (!text && listField) { listField = null; continue; }
+    // Skip empty lines while waiting for an inline field value
+    if (!text && pendingInlineField) continue;
 
     // If we're waiting for a value for an inline field, capture the next non-empty line
     if (pendingInlineField && text) {
