@@ -358,16 +358,16 @@ function parseSection(paragraphs) {
     const firstLine = text.split("\n")[0].trim();
     const restLines = text.split("\n").slice(1).join("\n").trim();
 
-    if (hasBold || isHeadingLike) {
-      // List section headers
-      const listMatch = LIST_SECTION_PATTERNS.find(([re]) => re.test(firstLine));
-      if (listMatch) {
-        listField = listMatch[1];
-        inDesc    = false;
-        // Add any items packed after the label on the same paragraph
-        if (restLines) addToList(listField, restLines);
-        continue;
-      }
+    // List section headers — checked unconditionally (not just bold/heading)
+    // so that sections like "You will learn about" are recognised even if
+    // the paragraph lacks bold or heading formatting in the Google Doc.
+    const listMatch = LIST_SECTION_PATTERNS.find(([re]) => re.test(firstLine));
+    if (listMatch) {
+      listField = listMatch[1];
+      inDesc    = false;
+      // Add any items packed after the label on the same paragraph
+      if (restLines) addToList(listField, restLines);
+      continue;
     }
 
     // Inline field labels — checked for bold/heading AND plain paragraphs,
