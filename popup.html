@@ -218,6 +218,61 @@
         gap: 8px;
       }
 
+      /* ── Column Mapping Summary ── */
+      .col-summary-details {
+        margin-top: 2px;
+      }
+      .col-summary-details summary {
+        font-size: 11px;
+        color: var(--muted-fg);
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        list-style: none;
+        outline: none;
+      }
+      .col-summary-details summary::-webkit-details-marker { display: none; }
+      .col-summary-chevron {
+        transition: transform 0.15s;
+        flex-shrink: 0;
+      }
+      .col-summary-details[open] .col-summary-chevron {
+        transform: rotate(90deg);
+      }
+      .col-summary-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 8px;
+        padding: 10px 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      .col-summary-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        min-width: 0;
+      }
+      .col-summary-label {
+        color: var(--muted-fg);
+        flex-shrink: 0;
+        width: 130px;
+      }
+      .col-summary-value {
+        font-size: 11px;
+        color: var(--text);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       /* ── Tour List Panel ── */
       .tour-body {
         padding: 12px 16px 16px;
@@ -1275,6 +1330,18 @@
             <input type="text" id="colExtraHourRequestB2C" placeholder="AQ" maxlength="3" />
           </div>
         </div>
+
+        <details class="col-summary-details" id="colMappingSummary">
+          <summary>
+            <svg class="col-summary-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            Current Column Mapping
+          </summary>
+          <div class="col-summary-grid" id="colSummaryGrid">
+            <!-- populated by JS -->
+          </div>
+        </details>
 
         <button class="btn btn-primary" id="saveConfigBtn">
           Save &amp; Load Tours

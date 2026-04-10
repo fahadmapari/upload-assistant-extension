@@ -3,6 +3,7 @@ let config = {};
 let tours = [];
 let selectedTour = null;
 let filteredTours = [];
+let sheetHeaders = []; // raw header row from the sheet (index = col index)
 let currentDocTour = null; // parsed tour data from Google Doc or pasted text
 let showReadyOnly = false;
 let manualMode = false;    // when true: skip doc fetch, accept pasted text instead
@@ -244,6 +245,13 @@ async function initApp() {
     if (tours.length) $("setupCloseBtn").style.display = "flex";
     loadUserEmail();
     showPanel("panelSetup");
+    sheetHeaders = [];
+    if ($("colMappingSummary").open) fetchSheetHeaders();
+  });
+
+  $("colMappingSummary").addEventListener("toggle", () => {
+    if ($("colMappingSummary").open && !sheetHeaders.length) fetchSheetHeaders();
+    else if ($("colMappingSummary").open) updateColMappingSummary();
   });
   $("setupCloseBtn").addEventListener("click", () => showPanel("panelList"));
   $("saveConfigBtn").addEventListener("click", saveAndLoad);
@@ -253,6 +261,8 @@ async function initApp() {
     if (tours.length) $("setupCloseBtn").style.display = "flex";
     loadUserEmail();
     showPanel("panelSetup");
+    sheetHeaders = [];
+    if ($("colMappingSummary").open) fetchSheetHeaders();
   });
 
   // Auto-save config on any input change (no fetch)
@@ -282,7 +292,7 @@ async function initApp() {
     "colReadyForUpload",
   ].forEach((id) => {
     const el = $(id);
-    if (el) el.addEventListener("input", autoSaveConfig);
+    if (el) el.addEventListener("input", () => { autoSaveConfig(); updateColMappingSummary(); });
   });
   $("searchInput").addEventListener("input", (e) =>
     filterTours(e.target.value),
@@ -827,6 +837,7 @@ async function loadTours(forceFresh = false) {
     }
 
     const headers = rows[0].map((h) => h.toLowerCase().trim());
+    sheetHeaders = rows[0]; // keep original casing for display
 
     tours = rows
       .slice(1)
@@ -1565,6 +1576,74 @@ async function startFill() {
       '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Autofill';
     $("startFillBtn").style.opacity = "";
   }
+}
+
+// ── Sheet header fetch (for column mapping summary) ─────
+async function fetchSheetHeaders() {
+  if (!config.sheetId || !config.sheetTab) return;
+  const grid = $("colSummaryGrid");
+  if (grid) {
+    grid.innerHTML = '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;"><div class="spinner" style="width:10px;height:10px;border-width:1.5px;flex-shrink:0"></div> Loading column names…</div>';
+  }
+  try {
+    const range = `'${config.sheetTab}'!1:1`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(range)}`;
+    const res = await authedFetch(url, false);
+    if (!res.ok) {
+      if (grid) grid.innerHTML = '<div style="font-size:11px;color:var(--muted);">Could not load column names.</div>';
+      return;
+    }
+    const data = await res.json();
+    sheetHeaders = (data.values || [[]])[0] || [];
+  } catch (e) {
+    if (grid) grid.innerHTML = '<div style="font-size:11px;color:var(--muted);">Could not load column names.</div>';
+    return;
+  }
+  updateColMappingSummary();
+}
+
+// ── Column mapping summary ──────────────────────────────
+const COL_SUMMARY_FIELDS = [
+  ["colTitle",              "Tour Title"],
+  ["colDocUrl",             "Doc URL"],
+  ["colCountry",            "Country"],
+  ["colCity",               "City"],
+  ["colDuration",           "Duration"],
+  ["colServiceType",        "Product Type"],
+  ["colMaxPax",             "Max Pax"],
+  ["colReadyForUpload",     "Ready for Upload"],
+  ["colRate",               "B2B Instant"],
+  ["colRateRequest",        "B2B On Request"],
+  ["colRateB2C",            "B2C Instant"],
+  ["colRateRequestB2C",     "B2C On Request"],
+  ["colCancellation",       "Cancel Instant"],
+  ["colCancellationRequest","Cancel On Request"],
+  ["colRelease",            "Cut Off Instant"],
+  ["colReleaseRequest",     "Cut Off On Request"],
+  ["colExtraHour",          "Extra Hr Instant"],
+  ["colExtraHourB2C",       "Extra Hr B2C Inst."],
+  ["colExtraHourRequest",   "Extra Hr On Req."],
+  ["colExtraHourRequestB2C","Extra Hr B2C Req."],
+];
+
+function updateColMappingSummary() {
+  const grid = $("colSummaryGrid");
+  if (!grid) return;
+  grid.innerHTML = COL_SUMMARY_FIELDS.map(([id, label]) => {
+    const el = $(id);
+    const letter = ((el ? el.value.trim() : "") || (el ? el.placeholder : "")).toUpperCase();
+    let sheetName = "—";
+    if (letter && sheetHeaders.length) {
+      const idx = colLetterToIndex(letter);
+      sheetName = sheetHeaders[idx] || "—";
+    } else if (!sheetHeaders.length) {
+      sheetName = letter || "—";
+    }
+    return `<div class="col-summary-row">
+      <span class="col-summary-label">${label}</span>
+      <span class="col-summary-value" title="Column ${letter}">${sheetName}</span>
+    </div>`;
+  }).join("");
 }
 
 // ── UI helpers ─────────────────────────────────────────
