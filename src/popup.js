@@ -257,6 +257,7 @@ async function initApp() {
   $("saveConfigBtn").addEventListener("click", saveAndLoad);
   $("signOutBtn").addEventListener("click", signOut);
   $("changeAccountBtn").addEventListener("click", changeAccount);
+  $("headerWarningSettingsBtn").addEventListener("click", () => showPanel("panelSetup"));
   $("loginNoticeBtn").addEventListener("click", () => {
     if (tours.length) $("setupCloseBtn").style.display = "flex";
     loadUserEmail();
@@ -435,28 +436,28 @@ function debounce(fn, ms) {
 
 const autoSaveConfig = debounce(async () => {
   try {
-    const cfg = buildConfig();
-    config = cfg;
-    await saveConfig(cfg);
+    const formCfg = buildConfig();
+    config = { ...config, ...formCfg }; // preserves savedHeaders and other non-form fields
+    await saveConfig(config);
   } catch (e) {
     console.error("[TourExt] autoSaveConfig error:", e.message);
   }
 }, 600);
 
 async function saveAndLoad() {
-  const cfg = buildConfig();
+  const formCfg = buildConfig();
 
-  if (!cfg.sheetId) {
+  if (!formCfg.sheetId) {
     showToast("Sheet ID is required", "error");
     return;
   }
 
-  config = cfg;
-  await saveConfig(cfg);
+  config = { ...config, ...formCfg }; // preserves savedHeaders until fresh fetch overwrites
+  await saveConfig(config);
   await fetchAndStoreSheetTitle();
   updateConfigBar();
   showPanel("panelList");
-  loadTours(true);
+  loadTours(true, true); // saveSnapshot=true: record new header baseline after fetch
 }
 
 // ── OAuth token helper (shared by Sheets + Docs) ───────
@@ -739,7 +740,7 @@ function showSkeletonLoader(count = 6) {
 
 // ── Google Sheets fetch ────────────────────────────────
 // Fetches all columns, maps by header name using COLUMN_MAP
-async function loadTours(forceFresh = false) {
+async function loadTours(forceFresh = false, saveSnapshot = false) {
   setStatus("busy");
 
   if (!forceFresh) {
@@ -838,6 +839,16 @@ async function loadTours(forceFresh = false) {
 
     const headers = rows[0].map((h) => h.toLowerCase().trim());
     sheetHeaders = rows[0]; // keep original casing for display
+
+    if (saveSnapshot) {
+      // User clicked Save & Load — record this as the new verified baseline
+      config.savedHeaders = sheetHeaders.slice();
+      await saveConfig(config);
+      hideHeaderWarning();
+    } else if (config.savedHeaders) {
+      // Regular refresh — check for drift against last verified baseline
+      checkAndWarnHeaderChanges(sheetHeaders);
+    }
 
     tours = rows
       .slice(1)
@@ -1595,6 +1606,9 @@ async function fetchSheetHeaders() {
     }
     const data = await res.json();
     sheetHeaders = (data.values || [[]])[0] || [];
+    if (config.savedHeaders) {
+      checkAndWarnHeaderChanges(sheetHeaders);
+    }
   } catch (e) {
     if (grid) grid.innerHTML = '<div style="font-size:11px;color:var(--muted);">Could not load column names.</div>';
     return;
@@ -1625,6 +1639,43 @@ const COL_SUMMARY_FIELDS = [
   ["colExtraHourRequest",   "Extra Hr On Req."],
   ["colExtraHourRequestB2C","Extra Hr B2C Req."],
 ];
+
+function checkAndWarnHeaderChanges(currentHeaders) {
+  if (!config.savedHeaders) return;
+  const changes = [];
+  for (const [fieldId, label] of COL_SUMMARY_FIELDS) {
+    const letter = (config[fieldId] || "").toUpperCase().trim();
+    if (!letter) continue;
+    const idx = colLetterToIndex(letter);
+    const oldHeader = (config.savedHeaders[idx] || "").trim();
+    const newHeader = (currentHeaders[idx] || "").trim();
+    if (oldHeader && newHeader && oldHeader !== newHeader) {
+      changes.push({ label, letter, from: oldHeader, to: newHeader });
+    } else if (oldHeader && !newHeader) {
+      changes.push({ label, letter, from: oldHeader, to: "(empty)" });
+    }
+  }
+  if (changes.length > 0) {
+    showHeaderWarning(changes);
+  } else {
+    hideHeaderWarning();
+  }
+}
+
+function showHeaderWarning(changes) {
+  const el = $("headerChangedWarning");
+  if (!el) return;
+  const list = changes.map(
+    (c) => `<li><strong>${c.label}</strong> (col ${c.letter}): "${c.from}" → "${c.to}"</li>`
+  ).join("");
+  $("headerChangedList").innerHTML = `<ul style="margin:4px 0 0;padding-left:16px;">${list}</ul>`;
+  el.style.display = "flex";
+}
+
+function hideHeaderWarning() {
+  const el = $("headerChangedWarning");
+  if (el) el.style.display = "none";
+}
 
 function updateColMappingSummary() {
   const grid = $("colSummaryGrid");
