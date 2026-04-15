@@ -1,3 +1,8 @@
+<img width="376" height="944" alt="image" src="https://github.com/user-attachments/assets/8c62e8e9-749f-4fb9-8783-3d28e086d9d3" />
+
+<img width="377" height="945" alt="image" src="https://github.com/user-attachments/assets/d679b641-8aa3-4700-a095-33a55e23ea82" />
+
+
 # Tour Admin Autofill — Chrome Extension
 
 Automatically fills your admin panel tour form from Google Sheets + Google Docs data.
